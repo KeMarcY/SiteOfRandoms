@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angol-Magyar Szótár és Kvíz</title>
+    <!-- Library for the PNG export feature -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #808080; /* Grey background */
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls, .quiz-controls-container {
+            background-color: #f0f0f0;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+        .controls input, .controls select, .controls button, .quiz-controls-container input, .quiz-controls-container select, .quiz-controls-container button {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        .controls input {
+            flex-grow: 1;
+            min-width: 200px;
+        }
+        .controls button, .quiz-controls-container button {
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        .controls button { background-color: #5cb85c; }
+        .controls button:hover { background-color: #4cae4c; }
+        .quiz-controls-container button { background-color: #007bff; }
+        .quiz-controls-container button:hover { background-color: #0056b3; }
+
+        #vocabulary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Two equal columns */
+            gap: 10px;
+            background-color: #a9a9a9;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .header-item, .letter-header {
+            background-color: #dcdcdc;
+            color: #000;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            border-radius: 25px;
+            margin-bottom: 10px;
+        }
+
+        .term-item {
+            background-color: #f5f5f5;
+            color: #000;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            min-height: 2.5em;
+            transition: background-color 0.4s ease; /* Smooth background color transition */
+        }
+
+        .letter-header {
+            grid-column: 1 / -1;
+            background-color: #b0c4de;
+            margin-top: 15px;
+            text-align: left;
+            padding-left: 20px;
+            font-size: 1.2em;
+        }
+
+        /* --- STYLES FOR THE QUIZ GAME --- */
+        #quiz-container {
+            max-width: 800px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        
+        #quiz-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background-color: #a9a9a9;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        #answerInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 1em;
+            border: none;
+            background-color: transparent;
+            font-family: inherit;
+            font-weight: 500;
+            box-sizing: border-box;
+        }
+        #answerInput:focus {
+            outline: none;
+        }
+        
+        #feedback {
+            color: white;
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            min-height: 1.5em;
+            animation: fadeIn 0.5s ease;
+        }
+
+        #countdown-timer {
+            color: #e0e0e0;
+            font-size: 0.9em;
+            height: 1.2em;
+        }
+        
+        .action-buttons button, #backToDictionaryBtn, #backToDictionaryFromResultsBtn {
+             padding: 12px 25px;
+             font-size: 16px;
+             border-radius: 8px;
+             border: none;
+             color: white;
+             cursor: pointer;
+             margin: 5px;
+        }
+        
+        #submitAnswerBtn { background-color: #5cb85c; }
+        #nextQuestionBtn { background-color: #f0ad4e; }
+        #overrideBtn { background-color: #17a2b8; }
+        #backToDictionaryBtn, #backToDictionaryFromResultsBtn { background-color: #6c757d; margin-top: 20px;}
+        
+        #results-container {
+            max-width: 800px;
+            margin: 40px auto;
+            text-align: center;
+            background-color: #f0f0f0;
+            padding: 30px;
+            border-radius: 15px;
+        }
+
+        #restartQuizBtn {
+             padding: 12px 25px;
+             font-size: 16px;
+             border-radius: 8px;
+             border: none;
+             color: white;
+             cursor: pointer;
+             background-color: #007bff;
+        }
+        
+        /* --- ANIMATION STYLES --- */
+        .view {
+            transition: opacity 0.25s ease-in-out;
+        }
+        .view.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Dictionary Controls -->
+        <div class="controls view" id="dictionary-controls">
+            <select id="jsonSelector">
+                <option value="words.json">Teljes Szótár</option>
+                <option value="topicone.json">1. Téma: Munka</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="Keress egy szóra...">
+            <button id="exportBtn">Exportálás PNG-be</button>
+        </div>
+        
+        <!-- Quiz Controls -->
+        <div class="quiz-controls-container view" id="quiz-controls">
+            <input type="number" id="numQuestions" value="10" min="1" max="50" placeholder="Kérdések száma">
+            <select id="answerLanguage">
+                <option value="en" selected>Válasz nyelve: Angol</option>
+                <option value="hu">Válasz nyelve: Magyar</option>
+            </select>
+            <button id="startQuizBtn">Kvíz Indítása</button>
+        </div>
+
+        <!-- Dictionary Grid -->
+        <div id="vocabulary-grid" class="view"></div>
+        
+        <!-- Quiz Game Container -->
+        <div id="quiz-container" class="view hidden">
+             <h2 id="question-counter" style="color: white;"></h2>
+             <div id="quiz-grid"></div>
+             <div id="feedback"></div>
+             <div id="countdown-timer"></div>
+             <div class="action-buttons">
+                 <button id="submitAnswerBtn">Válasz Elküldése</button>
+                 <button id="overrideBtn" style="display: none;">Helyesnek ítélem</button>
+                 <button id="nextQuestionBtn" style="display: none;">Következő Kérdés</button>
+             </div>
+             <button id="backToDictionaryBtn">Vissza a szótárhoz</button>
+        </div>
+
+        <!-- Quiz Results Container -->
+        <div id="results-container" class="view hidden">
+            <h2>Kvíz Eredmények</h2>
+            <p id="score" style="font-size: 1.5em;"></p>
+            <button id="restartQuizBtn">Újrapróbálkozás</button>
+            <button id="backToDictionaryFromResultsBtn">Vissza a szótárhoz</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DICTIONARY ELEMENTS ---
+        const vocabGrid = document.getElementById('vocabulary-grid');
+        const searchInput = document.getElementById('searchInput');
+        const exportBtn = document.getElementById('exportBtn');
+        const jsonSelector = document.getElementById('jsonSelector');
+        
+        // --- QUIZ ELEMENTS ---
+        const startQuizBtn = document.getElementById('startQuizBtn');
+        const numQuestionsInput = document.getElementById('numQuestions');
+        const answerLanguageSelect = document.getElementById('answerLanguage');
+        const quizContainer = document.getElementById('quiz-container');
+        const dictionaryControls = document.getElementById('dictionary-controls');
+        const quizControls = document.getElementById('quiz-controls');
+        const questionCounter = document.getElementById('question-counter');
+        const quizGrid = document.getElementById('quiz-grid');
+        const answerInput = document.createElement('input');
+        answerInput.id = 'answerInput';
+        answerInput.type = 'text';
+        answerInput.placeholder = 'Írd be a válaszod...';
+        const submitAnswerBtn = document.getElementById('submitAnswerBtn');
+        const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+        const overrideBtn = document.getElementById('overrideBtn');
+        const feedbackEl = document.getElementById('feedback');
+        const countdownTimerEl = document.getElementById('countdown-timer');
+        const resultsContainer = document.getElementById('results-container');
+        const scoreEl = document.getElementById('score');
+        const restartQuizBtn = document.getElementById('restartQuizBtn');
+        const backToDictionaryBtn = document.getElementById('backToDictionaryBtn');
+        const backToDictionaryFromResultsBtn = document.getElementById('backToDictionaryFromResultsBtn');
+
+        const allViews = [vocabGrid, quizContainer, resultsContainer, dictionaryControls, quizControls];
+
+        // --- STATE MANAGEMENT ---
+        let fullVocabulary = []; 
+        let currentQuizVocabulary = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let isOverridden = false;
+        let autoAdvanceTimer = null;
+        let countdownInterval = null;
+
+        // --- VIEW MANAGEMENT ---
+        const switchView = (viewToShow) => {
+            const viewsToHide = allViews.filter(v => !v.classList.contains('hidden'));
+            const shouldShowControls = viewToShow === vocabGrid;
+
+            // 1. Fade out all currently visible elements
+            viewsToHide.forEach(view => view.classList.add('hidden'));
+
+            // 2. After the fade-out, rearrange display and fade in the new elements
+            setTimeout(() => {
+                viewsToHide.forEach(view => view.style.display = 'none');
+
+                // Prepare new view(s) for fade-in
+                viewToShow.style.display = viewToShow === vocabGrid ? 'grid' : 'block';
+                if (shouldShowControls) {
+                    dictionaryControls.style.display = 'flex';
+                    quizControls.style.display = 'flex';
+                }
+
+                // 3. Trigger the fade-in animation by removing the 'hidden' class
+                setTimeout(() => {
+                    viewToShow.classList.remove('hidden');
+                    if (shouldShowControls) {
+                        dictionaryControls.classList.remove('hidden');
+                        quizControls.classList.remove('hidden');
+                    }
+                }, 20);
+
+            }, 250); // This duration must match the CSS transition duration
+        };
+
+
+        // --- DICTIONARY FUNCTIONS ---
+        const renderVocabulary = () => {
+            const filterTerm = searchInput.value.toLowerCase();
+            vocabGrid.innerHTML = ''; 
+
+            const enHeader = document.createElement('div'); enHeader.className = 'header-item'; enHeader.textContent = 'English'; vocabGrid.appendChild(enHeader);
+            const huHeader = document.createElement('div'); huHeader.className = 'header-item'; huHeader.textContent = 'Hungarian'; vocabGrid.appendChild(huHeader);
+            
+            const filteredVocab = fullVocabulary.filter(item => item.en.toLowerCase().includes(filterTerm) || item.hu.toLowerCase().includes(filterTerm));
+            filteredVocab.sort((a, b) => a.en.localeCompare(b.en));
+
+            let currentLetter = '';
+            filteredVocab.forEach(item => {
+                const firstLetter = item.en.charAt(0).toUpperCase();
+                if (firstLetter && firstLetter !== currentLetter) {
+                    currentLetter = firstLetter;
+                    const letterHeader = document.createElement('div'); letterHeader.className = 'letter-header'; letterHeader.textContent = currentLetter; vocabGrid.appendChild(letterHeader);
+                }
+                const enItem = document.createElement('div'); enItem.className = 'term-item'; enItem.textContent = item.en; vocabGrid.appendChild(enItem);
+                const huItem = document.createElement('div'); huItem.className = 'term-item'; huItem.textContent = item.hu; vocabGrid.appendChild(huItem);
+            });
+        };
+
+        const loadVocabulary = (filename) => {
+            fetch(filename)
+                .then(response => { if (!response.ok) throw new Error(`Could not load ${filename}.`); return response.json(); })
+                .then(data => { fullVocabulary = data; renderVocabulary(); })
+                .catch(error => { console.error('Error fetching vocabulary:', error); vocabGrid.innerHTML = `<div class="header-item" style="grid-column: 1 / -1;">${error.message}</div>`; });
+        };
+        
+        // --- QUIZ FUNCTIONS ---
+        const clearTimers = () => {
+            clearTimeout(autoAdvanceTimer);
+            clearInterval(countdownInterval);
+            countdownTimerEl.textContent = '';
+        };
+
+        const advanceToNextQuestion = () => {
+            clearTimers();
+            currentQuestionIndex++;
+            displayQuestion();
+        };
+
+        const startQuiz = () => {
+            let numQuestions = parseInt(numQuestionsInput.value);
+            if (isNaN(numQuestions) || numQuestions <= 0) { alert("Kérlek, adj meg egy érvényes számot a kérdésekhez."); return; }
+            if (numQuestions > fullVocabulary.length) numQuestions = fullVocabulary.length;
+
+            score = 0;
+            currentQuestionIndex = 0;
+            const shuffled = [...fullVocabulary].sort(() => 0.5 - Math.random());
+            currentQuizVocabulary = shuffled.slice(0, numQuestions);
+            
+            switchView(quizContainer);
+            displayQuestion();
+        };
+        
+        const displayQuestion = () => {
+            clearTimers();
+            if (currentQuestionIndex < currentQuizVocabulary.length) {
+                const question = currentQuizVocabulary[currentQuestionIndex];
+                const answerLanguage = answerLanguageSelect.value;
+                isOverridden = false;
+                
+                questionCounter.textContent = `Kérdés: ${currentQuestionIndex + 1} / ${currentQuizVocabulary.length}`;
+                quizGrid.innerHTML = '';
+
+                const enHeader = document.createElement('div'); enHeader.className = 'header-item'; enHeader.textContent = 'English'; quizGrid.appendChild(enHeader);
+                const huHeader = document.createElement('div'); huHeader.className = 'header-item'; huHeader.textContent = 'Hungarian'; quizGrid.appendChild(huHeader);
+                
+                const questionItem = document.createElement('div'); questionItem.className = 'term-item';
+                const answerItem = document.createElement('div'); answerItem.className = 'term-item'; answerItem.appendChild(answerInput);
+
+                if (answerLanguage === 'hu') {
+                    questionItem.textContent = question.en;
+                    quizGrid.appendChild(questionItem);
+                    quizGrid.appendChild(answerItem);
+                } else {
+                    questionItem.textContent = question.hu;
+                    quizGrid.appendChild(answerItem);
+                    quizGrid.appendChild(questionItem);
+                }
+                
+                answerInput.value = '';
+                answerItem.style.backgroundColor = '#f5f5f5';
+                answerInput.disabled = false;
+                feedbackEl.textContent = '';
+                submitAnswerBtn.style.display = 'inline-block';
+                nextQuestionBtn.style.display = 'none';
+                overrideBtn.style.display = 'none';
+                answerInput.focus();
+            } else {
+                showResults();
+            }
+        };
+
+        const checkAnswer = () => {
+            const userAnswer = answerInput.value.trim().toLowerCase();
+            if (!userAnswer) return;
+
+            const question = currentQuizVocabulary[currentQuestionIndex];
+            const answerLanguage = answerLanguageSelect.value;
+            const correctAnswer = (answerLanguage === 'hu' ? question.hu : question.en).toLowerCase();
+            const answerItem = answerInput.parentElement;
+
+            answerInput.disabled = true;
+            submitAnswerBtn.style.display = 'none';
+            nextQuestionBtn.style.display = 'inline-block';
+
+            if (userAnswer === correctAnswer) {
+                score++;
+                answerItem.style.backgroundColor = '#90EE90';
+                feedbackEl.textContent = "Helyes!";
+                feedbackEl.style.color = 'lightgreen';
+            } else {
+                answerItem.style.backgroundColor = '#FFCCCB';
+                feedbackEl.textContent = `Helytelen. A helyes válasz: ${answerLanguage === 'hu' ? question.hu : question.en}`;
+                feedbackEl.style.color = 'lightcoral';
+                overrideBtn.style.display = 'inline-block';
+            }
+            
+            let countdown = 3;
+            countdownTimerEl.textContent = `(Automatikus továbblépés ${countdown}...)`;
+            countdownInterval = setInterval(() => {
+                countdown--;
+                countdownTimerEl.textContent = `(Automatikus továbblépés ${countdown}...)`;
+                if (countdown === 0) clearInterval(countdownInterval);
+            }, 1000);
+            autoAdvanceTimer = setTimeout(advanceToNextQuestion, 3000);
+        };
+
+        const handleOverride = () => {
+            if (!isOverridden) {
+                score++;
+                isOverridden = true;
+                feedbackEl.textContent = "Felülbírálva! A válaszod elfogadva.";
+                feedbackEl.style.color = '#17a2b8';
+                overrideBtn.style.display = 'none';
+            }
+        };
+
+        const showResults = () => {
+            clearTimers();
+            const percentage = currentQuizVocabulary.length > 0 ? Math.round((score / currentQuizVocabulary.length) * 100) : 0;
+            scoreEl.textContent = `Eredményed: ${score} / ${currentQuizVocabulary.length} (${percentage}%)`;
+            switchView(resultsContainer);
+        };
+        
+        const returnToDictionary = () => {
+            clearTimers();
+            switchView(vocabGrid);
+        }
+
+        // --- EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial state for all views except the dictionary-related ones
+            allViews.forEach(v => {
+                if (v !== vocabGrid && v !== dictionaryControls && v !== quizControls) {
+                    v.classList.add('hidden');
+                    v.style.display = 'none';
+                }
+            });
+            vocabGrid.classList.remove('hidden');
+            dictionaryControls.classList.remove('hidden');
+            quizControls.classList.remove('hidden');
+            loadVocabulary(jsonSelector.value);
+        });
+
+        jsonSelector.addEventListener('change', () => loadVocabulary(jsonSelector.value));
+        searchInput.addEventListener('input', renderVocabulary);
+        exportBtn.addEventListener('click', () => {
+            vocabGrid.style.width = '1200px';
+            html2canvas(vocabGrid, { scale: 2, backgroundColor: '#a9a9a9' })
+                .then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'vocabulary.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                    vocabGrid.style.width = ''; 
+                });
+        });
+
+        startQuizBtn.addEventListener('click', startQuiz);
+        submitAnswerBtn.addEventListener('click', checkAnswer);
+        overrideBtn.addEventListener('click', handleOverride);
+        nextQuestionBtn.addEventListener('click', advanceToNextQuestion);
+        
+        answerInput.addEventListener('keyup', (event) => {
+             if (event.key === 'Enter' && !answerInput.disabled) checkAnswer();
+        });
+
+        document.addEventListener('mousemove', () => clearTimers());
+        
+        restartQuizBtn.addEventListener('click', startQuiz);
+        backToDictionaryBtn.addEventListener('click', returnToDictionary);
+        backToDictionaryFromResultsBtn.addEventListener('click', returnToDictionary);
+
+    </script>
+</body>
+</html>
