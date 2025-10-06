@@ -1,0 +1,103 @@
+{
+    "data": {
+        "owner": "KeMarcY",
+        "version": "1.0"
+    },
+    "categories": [
+        {
+            "id": "ai",
+            "name": "AI",
+            "icon": "https://img.icons8.com/color/48/000000/artificial-intelligence.png",
+            "color": "#FF0000"
+        },
+        {
+            "id": "development",
+            "name": "Development",
+            "icon": "https://img.icons8.com/color/48/000000/code.png",
+            "color": "#00FF00"
+        },
+        {
+            "id": "design",
+            "name": "Design",
+            "icon": "https://img.icons8.com/color/48/000000/designer.png",
+            "color": "#0000FF"
+        },
+        {
+            "id": "productivity",
+            "name": "Productivity",
+            "icon": "https://img.icons8.com/color/48/000000/briefcase.png",
+            "color": "#FFFF00"
+        }
+    ],
+    "folders": [
+        {
+            "id": "llm",
+            "name": "Language Models",
+            "connector": "ai",
+            "icon": "https://img.icons8.com/color/48/000000/artificial-intelligence.png"
+        },
+        {
+            "id": "frontend",
+            "name": "Frontend",
+            "connector": "development",
+            "icon": "https://img.icons8.com/color/48/000000/domain.png"
+        },
+        {
+            "id": "inspiration",
+            "name": "Inspiration",
+            "connector": "design",
+            "icon": "https://img.icons8.com/color/48/000000/idea.png"
+        }
+    ],
+    "stars": [
+        {
+            "id": "gpt-4",
+            "name": "GPT-4",
+            "link": "https://openai.com/blog/gpt-4",
+            "connector": "llm",
+            "icon": "https://img.icons8.com/color/48/000000/artificial-intelligence.png"
+        },
+        {
+            "id": "hugging-face",
+            "name": "Hugging Face",
+            "link": "https://huggingface.co/",
+            "connector": "ai",
+            "icon": "https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
+        },
+        {
+            "id": "react",
+            "name": "React",
+            "link": "https://react.dev/",
+            "connector": "frontend",
+            "icon": "https://img.icons8.com/color/48/000000/react-native.png"
+        },
+        {
+            "id": "github",
+            "name": "GitHub",
+            "link": "https://github.com",
+            "connector": "development",
+            "icon": "https://img.icons8.com/color/48/000000/github--v1.png"
+        },
+        {
+            "id": "dribbble",
+            "name": "Dribbble",
+            "link": "https://dribbble.com/",
+            "connector": "inspiration",
+            "icon": "https://img.icons8.com/color/48/000000/dribbble.png"
+        },
+        {
+            "id": "figma",
+            "name": "Figma",
+            "link": "https://www.figma.com/",
+            "connector": "design",
+            "icon": "https://img.icons8.com/color/48/000000/figma.png"
+        },
+        {
+            "id": "notion",
+            "name": "Notion",
+            "link": "https://www.notion.so/",
+            "connector": "productivity",
+            "icon": "https://img.icons8.com/color/48/000000/notion.png"
+        }
+    ]
+}
