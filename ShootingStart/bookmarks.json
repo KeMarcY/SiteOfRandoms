@@ -5,99 +5,278 @@
     },
     "categories": [
         {
-            "id": "ai",
             "name": "AI",
-            "icon": "https://img.icons8.com/color/48/000000/artificial-intelligence.png",
-            "color": "#FF0000"
+            "icon": "https://img.icons8.com/?size=100&id=POBc2SrrhhnF&format=png&color=000000",
+            "stars": [
+                {
+                    "name": "ChatGPT",
+                    "link": "https://chat.openai.com/chat"
+                },
+                {
+                    "name": "Google AI Studio",
+                    "link": "https://aistudio.google.com"
+                },
+                {
+                    "name": "Kimi",
+                    "link": "https://www.kimi.com"
+                },
+                {
+                    "name": "DeepSeek",
+                    "link": "https://chat.deepseek.com/"
+                },
+                {
+                    "name": "Grok",
+                    "link": "https://grok.com/"
+                },
+                {
+                    "name": "Claude",
+                    "link": "https://claude.ai/new"
+                },
+                {
+                    "name": "Hailuo AI",
+                    "link": "https://www.hailuo.ai/"
+                },
+                {
+                    "name": "Hailuo VID",
+                    "link": "https://hailuoai.video/"
+                },
+                {
+                    "name": "Suno AI",
+                    "link": "https://app.suno.ai/"
+                },
+                {
+                    "name": "PixAI",
+                    "link": "https://pixai.art/"
+                },
+                {
+                    "name": "Tensor.Art",
+                    "link": "https://tensor.art/"
+                },
+                {
+                    "name": "Pika",
+                    "link": "https://pika.art/"
+                }
+            ]
         },
         {
-            "id": "development",
-            "name": "Development",
-            "icon": "https://img.icons8.com/color/48/000000/code.png",
-            "color": "#00FF00"
+            "name": "Cloud",
+            "icon": "https://img.icons8.com/?size=100&id=11873&format=png&color=000000",
+            "stars": [
+                {
+                    "name": "GMail",
+                    "link": "https://mail.google.com/mail/u/0/#inbox"
+                },
+                {
+                    "name": "Google Drive",
+                    "link": "https://drive.google.com/drive/u/0/home"
+                },
+                {
+                    "name": "Google Calendar",
+                    "link": "https://calendar.google.com/"
+                },
+                {
+                    "name": "Google Photos",
+                    "link": "https://photos.google.com/"
+                },
+                {
+                    "name": "Google Classroom",
+                    "link": "https://classroom.google.com/"
+                },
+                {
+                    "name": "GitHub",
+                    "link": "https://github.com/"
+                },
+                {
+                    "name": "iCloud",
+                    "link": "https://www.icloud.com/"
+                },
+                {
+                    "name": "Xiaomi Cloud",
+                    "link": "https://eu.i.mi.com/?_locale=en_US"
+                },
+                {
+                    "name": "DiskStation",
+                    "link": "https://192.168.33.150:5050/#/signin"
+                },
+                {
+                    "name": "Syncthing",
+                    "link": "https://127.0.0.1:8384/"
+                }
+            ]
         },
         {
-            "id": "design",
-            "name": "Design",
-            "icon": "https://img.icons8.com/color/48/000000/designer.png",
-            "color": "#0000FF"
+            "name": "Tools",
+            "icon": "https://img.icons8.com/?size=100&id=20544&format=png&color=000000",
+            "stars": [
+                {
+                    "name": "Google Translate",
+                    "link": "https://translate.google.hu/?sl=hu&tl=en&op=translate"
+                },
+                {
+                    "name": "DeepL Translate",
+                    "link": "https://www.deepl.com/en/translator"
+                },
+                {
+                    "name": "Pixlr",
+                    "link": "https://pixlr.com/editor/"
+                },
+                {
+                    "name": "Penpot",
+                    "link": "https://design.penpot.app/"
+                },
+                {
+                    "name": "HTML Color Codes",
+                    "link": "https://html-color.codes"
+                },
+                {
+                    "name": "GetEmoji",
+                    "link": "https://getemoji.com/"
+                },
+                {
+                    "name": "Symbols",
+                    "link": "https://www.copyandpastesymbols.net/"
+                },
+                {
+                    "name": "CopyChar",
+                    "link": "https://copychar.cc/"
+                },
+                {
+                    "name": "Ezgif",
+                    "link": "https://ezgif.com/"
+                },
+                {
+                    "name": "Audioalter",
+                    "link": "https://audioalter.com/"
+                },
+                {
+                    "name": "OBJ to GLB",
+                    "link": "https://imagetostl.com/convert/file/obj/to/glb#convert"
+                },
+                {
+                    "name": "Web Code Tools",
+                    "link": "https://webcode.tools/"
+                },
+                {
+                    "name": "Buzzheavier",
+                    "link": "https://buzzheavier.com/"
+                },
+                {
+                    "name": "ImgBB",
+                    "link": "https://imgbb.com/"
+                },
+                {
+                    "name": "Twitter Video Downloader",
+                    "link": "https://twittervideodownloader.com/"
+                },
+                {
+                    "name": "Pixabay",
+                    "link": "https://pixabay.com/hu/"
+                },
+                {
+                    "name": "Audio Library",
+                    "link": "https://www.audiolibrary.com.co/"
+                }
+            ]
         },
         {
-            "id": "productivity",
-            "name": "Productivity",
-            "icon": "https://img.icons8.com/color/48/000000/briefcase.png",
-            "color": "#FFFF00"
-        }
-    ],
-    "folders": [
-        {
-            "id": "llm",
-            "name": "Language Models",
-            "connector": "ai",
-            "icon": "https://img.icons8.com/color/48/000000/artificial-intelligence.png"
+            "name": "Social Media",
+            "icon": "https://img.icons8.com/?size=100&id=c84A8yTomT5p&format=png&color=000000",
+            "stars": [
+                {
+                    "name": "YouTube",
+                    "link": "https://www.youtube.com/"
+                },
+                {
+                    "name": "YouTube Music",
+                    "link": "https://music.youtube.com/"
+                },
+                {
+                    "name": "Twitch",
+                    "link": "https://www.twitch.tv/"
+                },
+                {
+                    "name": "Twitter",
+                    "link": "https://twitter.com/"
+                },
+                {
+                    "name": "Bluesky",
+                    "link": "https://bsky.app/"
+                },
+                {
+                    "name": "Reddit",
+                    "link": "https://www.reddit.com/"
+                },
+                {
+                    "name": "TikTok",
+                    "link": "https://www.tiktok.com/"
+                }
+            ]
         },
         {
-            "id": "frontend",
-            "name": "Frontend",
-            "connector": "development",
-            "icon": "https://img.icons8.com/color/48/000000/domain.png"
+            "name": "Entertainment",
+            "icon": "https://img.icons8.com/?size=100&id=97192&format=png&color=000000",
+            "stars": [
+                {
+                    "name": "Netflix",
+                    "link": "https://www.netflix.com/"
+                },
+                {
+                    "name": "hiAnime",
+                    "link": "https://hianime.to/home"
+                },
+                {
+                    "name": "MangaFire",
+                    "link": "https://mangafire.to/home"
+                },
+                {
+                    "name": "One Pace",
+                    "link": "https://onepace.net/en"
+                }
+            ]
         },
         {
-            "id": "inspiration",
-            "name": "Inspiration",
-            "connector": "design",
-            "icon": "https://img.icons8.com/color/48/000000/idea.png"
-        }
-    ],
-    "stars": [
-        {
-            "id": "gpt-4",
-            "name": "GPT-4",
-            "link": "https://openai.com/blog/gpt-4",
-            "connector": "llm",
-            "icon": "https://img.icons8.com/color/48/000000/artificial-intelligence.png"
+            "name": "Games",
+            "icon": "https://img.icons8.com/?size=100&id=GdTfmvALOWwB&format=png&color=000000",
+            "stars": [
+                {
+                    "name": "Roblox",
+                    "link": "https://www.roblox.com/home"
+                },
+                {
+                    "name": "CurseForge",
+                    "link": "https://beta.curseforge.com/"
+                },
+                {
+                    "name": "Nexus Mods",
+                    "link": "https://www.nexusmods.com/"
+                },
+                {
+                    "name": "Play Hosting",
+                    "link": "https://play.hosting/"
+                }
+            ]
         },
         {
-            "id": "hugging-face",
-            "name": "Hugging Face",
-            "link": "https://huggingface.co/",
-            "connector": "ai",
-            "icon": "https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
-        },
-        {
-            "id": "react",
-            "name": "React",
-            "link": "https://react.dev/",
-            "connector": "frontend",
-            "icon": "https://img.icons8.com/color/48/000000/react-native.png"
-        },
-        {
-            "id": "github",
-            "name": "GitHub",
-            "link": "https://github.com",
-            "connector": "development",
-            "icon": "https://img.icons8.com/color/48/000000/github--v1.png"
-        },
-        {
-            "id": "dribbble",
-            "name": "Dribbble",
-            "link": "https://dribbble.com/",
-            "connector": "inspiration",
-            "icon": "https://img.icons8.com/color/48/000000/dribbble.png"
-        },
-        {
-            "id": "figma",
-            "name": "Figma",
-            "link": "https://www.figma.com/",
-            "connector": "design",
-            "icon": "https://img.icons8.com/color/48/000000/figma.png"
-        },
-        {
-            "id": "notion",
-            "name": "Notion",
-            "link": "https://www.notion.so/",
-            "connector": "productivity",
-            "icon": "https://img.icons8.com/color/48/000000/notion.png"
+            "name": "Other Stuff",
+            "icon": "https://img.icons8.com/?size=100&id=1YKSEjIedMKa&format=png&color=000000",
+            "stars": [
+                {
+                    "name": "Cornered Key",
+                    "link": "https://corneredkey.com/"
+                },
+                {
+                    "name": "VTubie",
+                    "link": "https://vtubie.com/"
+                },
+                {
+                    "name": "Kréta",
+                    "link": "https://szbi-kiskunfelegyhaza.e-kreta.hu/Intezmeny/Faliujsag"
+                },
+                {
+                    "name": "VoCa",
+                    "link": "https://kemarcy.github.io/SiteOfRandoms/VoCa/"
+                }
+            ]
         }
     ]
 }

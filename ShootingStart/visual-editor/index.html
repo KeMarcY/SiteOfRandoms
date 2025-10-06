@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmarks Editor</title>
+    <style>
+        :root {
+            --primary-bg: #f4f7f9;
+            --secondary-bg: #ffffff;
+            --text-color: #333;
+            --header-color: #1a202c;
+            --border-color: #e2e8f0;
+            --shadow-color: rgba(0,0,0,0.1);
+            --button-primary-bg: #4a5568;
+            --button-primary-hover: #2d3748;
+            --button-danger-bg: #e53e3e;
+            --button-danger-hover: #c53030;
+            --link-color: #2b6cb0;
+            --drop-zone-bg: #edf2f7;
+            --drop-zone-border: #718096;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--secondary-bg);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        h1 {
+            color: var(--header-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: var(--button-primary-bg);
+            color: var(--secondary-bg);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: var(--button-primary-hover); }
+        .button-secondary { background-color: #718096; }
+        .button-secondary:hover { background-color: #4a5568; }
+        .button-danger { background-color: var(--button-danger-bg); }
+        .button-danger:hover { background-color: var(--button-danger-hover); }
+        #fileInput { display: none; }
+        .category {
+            background-color: #fdfdfd;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 15px;
+            padding: 15px;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: move;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 10px;
+        }
+        .category-title { display: flex; align-items: center; gap: 10px; font-size: 1.2em; font-weight: bold; }
+        .stars-container { list-style: none; padding-left: 0; min-height: 20px; }
+        .star {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: move;
+            transition: background-color 0.3s;
+        }
+        .star:hover { background-color: #f1f5f9; }
+        .star a { color: var(--link-color); text-decoration: none; }
+        .star a:hover { text-decoration: underline; }
+        .item-controls button { padding: 4px 8px; font-size: 12px; }
+        .dragging { opacity: 0.5; background: #cbd5e0; }
+        .drop-zone { border: 2px dashed var(--drop-zone-border); background-color: var(--drop-zone-bg) !important; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--secondary-bg);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal-content h2 { margin-top: 0; }
+        .modal-form-group { margin-bottom: 15px; }
+        .modal-form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .modal-form-group input { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color); box-sizing: border-box; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Bookmarks Visual Editor</h1>
+    <div class="controls">
+        <button onclick="document.getElementById('fileInput').click();">Import bookmarks.json</button>
+        <input type="file" id="fileInput" onchange="handleFileSelect(event)" accept=".json">
+        <button onclick="exportJson()">Export bookmarks.json</button>
+        <button class="button-secondary" onclick="addCategory()">Add New Category</button>
+    </div>
+    <div id="editor"></div>
+</div>
+
+<!-- Modal Structure -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content">
+        <h2 id="modal-title"></h2>
+        <div id="modal-body"></div>
+        <div class="modal-actions">
+            <button class="button-secondary" id="modal-cancel">Cancel</button>
+            <button id="modal-save">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let bookmarksData = {};
+    let draggedItem = null;
+
+    const initialJson = `{
+        "data": { "owner": "KeMarcY", "version": "1.0" },
+        "categories": [
+            { "name": "AI", "icon": "https://img.icons8.com/color/48/000000/artificial-intelligence.png", "stars": [{ "name": "ChatGPT", "link": "https://chat.openai.com/chat" }] },
+            { "name": "Cloud", "icon": "https://img.icons8.com/color/48/000000/cloud.png", "stars": [{ "name": "GMail", "link": "https://mail.google.com/mail/u/0/#inbox" }] }
+        ]
+    }`;
+
+    function initialize() {
+        bookmarksData = JSON.parse(initialJson);
+        renderEditor();
+        setupModal();
+    }
+
+    function renderEditor() {
+        const editor = document.getElementById('editor');
+        editor.innerHTML = '';
+        if (!bookmarksData.categories) bookmarksData.categories = [];
+
+        bookmarksData.categories.forEach((category, categoryIndex) => {
+            const categoryElement = document.createElement('div');
+            categoryElement.className = 'category';
+            categoryElement.dataset.categoryIndex = categoryIndex;
+
+            categoryElement.innerHTML = `
+                <div class="category-header" draggable="true">
+                    <div class="category-title">
+                        <img src="${category.icon}" width="24" height="24" alt="">
+                        <span>${category.name}</span>
+                    </div>
+                    <div class="item-controls">
+                        <button onclick="addStar(${categoryIndex})">Add Star</button>
+                        <button class="button-secondary" onclick="editCategory(${categoryIndex})">Edit</button>
+                        <button class="button-danger" onclick="deleteCategory(${categoryIndex})">Delete</button>
+                    </div>
+                </div>
+                <ul class="stars-container" data-category-index="${categoryIndex}"></ul>`;
+
+            const starsContainer = categoryElement.querySelector('.stars-container');
+            if (category.stars) {
+                category.stars.forEach((star, starIndex) => {
+                    const starElement = document.createElement('li');
+                    starElement.className = 'star';
+                    starElement.dataset.categoryIndex = categoryIndex;
+                    starElement.dataset.starIndex = starIndex;
+                    starElement.draggable = true;
+                    starElement.innerHTML = `
+                        <a href="${star.link}" target="_blank">${star.name}</a>
+                        <div class="item-controls">
+                            <button class="button-secondary" onclick="editStar(${categoryIndex}, ${starIndex})">Edit</button>
+                            <button class="button-danger" onclick="deleteStar(${categoryIndex}, ${starIndex})">Delete</button>
+                        </div>`;
+                    starsContainer.appendChild(starElement);
+                });
+            }
+            editor.appendChild(categoryElement);
+        });
+        addDragAndDropHandlers();
+    }
+
+    // Modal Logic
+    const modal = {
+        overlay: document.getElementById('modal-overlay'),
+        title: document.getElementById('modal-title'),
+        body: document.getElementById('modal-body'),
+        saveBtn: document.getElementById('modal-save'),
+        cancelBtn: document.getElementById('modal-cancel'),
+        onSaveCallback: null
+    };
+
+    function setupModal() {
+        modal.overlay.addEventListener('click', (e) => { if (e.target === modal.overlay) hideModal(); });
+        modal.cancelBtn.addEventListener('click', hideModal);
+        modal.saveBtn.addEventListener('click', () => {
+            if (modal.onSaveCallback) modal.onSaveCallback();
+        });
+    }
+
+    function showModal(config) {
+        modal.title.textContent = config.title;
+        modal.body.innerHTML = config.body;
+        modal.saveBtn.textContent = config.saveText || 'Save';
+        modal.saveBtn.className = config.saveClass || '';
+        modal.onSaveCallback = config.onSave;
+        modal.overlay.classList.add('visible');
+    }
+
+    function hideModal() {
+        modal.overlay.classList.remove('visible');
+        modal.onSaveCallback = null;
+    }
+
+    // Category Functions
+    function addCategory() {
+        showModal({
+            title: 'Add New Category',
+            body: `
+                <div class="modal-form-group">
+                    <label for="cat-name">Category Name</label>
+                    <input type="text" id="cat-name" placeholder="e.g., Social Media">
+                </div>
+                <div class="modal-form-group">
+                    <label for="cat-icon">Icon URL</label>
+                    <input type="text" id="cat-icon" placeholder="https://example.com/icon.png">
+                </div>`,
+            onSave: () => {
+                const name = document.getElementById('cat-name').value;
+                const icon = document.getElementById('cat-icon').value;
+                if (name) {
+                    bookmarksData.categories.push({ name, icon, stars: [] });
+                    renderEditor();
+                    hideModal();
+                } else {
+                    alert('Category name is required.');
+                }
+            }
+        });
+    }
+
+    function editCategory(index) {
+        const category = bookmarksData.categories[index];
+        showModal({
+            title: 'Edit Category',
+            body: `
+                <div class="modal-form-group">
+                    <label for="cat-name">Category Name</label>
+                    <input type="text" id="cat-name" value="${category.name}">
+                </div>
+                <div class="modal-form-group">
+                    <label for="cat-icon">Icon URL</label>
+                    <input type="text" id="cat-icon" value="${category.icon}">
+                </div>`,
+            onSave: () => {
+                const name = document.getElementById('cat-name').value;
+                if (name) {
+                    category.name = name;
+                    category.icon = document.getElementById('cat-icon').value;
+                    renderEditor();
+                    hideModal();
+                } else {
+                    alert('Category name is required.');
+                }
+            }
+        });
+    }
+
+    function deleteCategory(index) {
+        const category = bookmarksData.categories[index];
+        showModal({
+            title: 'Delete Category',
+            body: `<p>Are you sure you want to delete the category "<strong>${category.name}</strong>"? This action cannot be undone.</p>`,
+            saveText: 'Delete',
+            saveClass: 'button-danger',
+            onSave: () => {
+                bookmarksData.categories.splice(index, 1);
+                renderEditor();
+                hideModal();
+            }
+        });
+    }
+
+    // Star Functions
+    function addStar(categoryIndex) {
+        showModal({
+            title: 'Add New Star',
+            body: `
+                <div class="modal-form-group">
+                    <label for="star-name">Name</label>
+                    <input type="text" id="star-name" placeholder="e.g., Google">
+                </div>
+                <div class="modal-form-group">
+                    <label for="star-link">Link URL</label>
+                    <input type="text" id="star-link" placeholder="https://google.com">
+                </div>`,
+            onSave: () => {
+                const name = document.getElementById('star-name').value;
+                const link = document.getElementById('star-link').value;
+                if (name && link) {
+                    bookmarksData.categories[categoryIndex].stars.push({ name, link });
+                    renderEditor();
+                    hideModal();
+                } else {
+                    alert('Name and Link are required.');
+                }
+            }
+        });
+    }
+
+    function editStar(categoryIndex, starIndex) {
+        const star = bookmarksData.categories[categoryIndex].stars[starIndex];
+        showModal({
+            title: 'Edit Star',
+            body: `
+                <div class="modal-form-group">
+                    <label for="star-name">Name</label>
+                    <input type="text" id="star-name" value="${star.name}">
+                </div>
+                <div class="modal-form-group">
+                    <label for="star-link">Link URL</label>
+                    <input type="text" id="star-link" value="${star.link}">
+                </div>`,
+            onSave: () => {
+                const name = document.getElementById('star-name').value;
+                const link = document.getElementById('star-link').value;
+                if (name && link) {
+                    star.name = name;
+                    star.link = link;
+                    renderEditor();
+                    hideModal();
+                } else {
+                    alert('Name and Link are required.');
+                }
+            }
+        });
+    }
+
+    function deleteStar(categoryIndex, starIndex) {
+        const star = bookmarksData.categories[categoryIndex].stars[starIndex];
+        showModal({
+            title: 'Delete Star',
+            body: `<p>Are you sure you want to delete the star "<strong>${star.name}</strong>"?</p>`,
+            saveText: 'Delete',
+            saveClass: 'button-danger',
+            onSave: () => {
+                bookmarksData.categories[categoryIndex].stars.splice(starIndex, 1);
+                renderEditor();
+                hideModal();
+            }
+        });
+    }
+
+    // Drag and Drop Logic
+    function addDragAndDropHandlers() {
+        document.querySelectorAll('.category-header[draggable="true"]').forEach(el => el.addEventListener('dragstart', e => handleDragStart(e, true)));
+        document.querySelectorAll('.star[draggable="true"]').forEach(el => el.addEventListener('dragstart', e => handleDragStart(e, false)));
+        
+        const dropZones = document.querySelectorAll('#editor, .stars-container');
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', handleDragOver);
+            zone.addEventListener('dragenter', handleDragEnter);
+            zone.addEventListener('dragleave', handleDragLeave);
+            zone.addEventListener('drop', handleDrop);
+        });
+        document.addEventListener('dragend', () => { document.querySelector('.dragging')?.classList.remove('dragging'); });
+    }
+
+    function handleDragStart(e, isCategory) {
+        const el = isCategory ? e.target.closest('.category') : e.target;
+        draggedItem = {
+            isCategory: isCategory,
+            fromCategoryIndex: parseInt(el.dataset.categoryIndex),
+            fromStarIndex: isCategory ? -1 : parseInt(el.dataset.starIndex)
+        };
+        e.dataTransfer.effectAllowed = 'move';
+        el.classList.add('dragging');
+    }
+
+    function handleDragOver(e) { e.preventDefault(); }
+    function handleDragEnter(e) { e.preventDefault(); e.target.closest('#editor, .stars-container')?.classList.add('drop-zone'); }
+    function handleDragLeave(e) { e.target.closest('#editor, .stars-container')?.classList.remove('drop-zone'); }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dropTarget = e.target.closest('#editor, .stars-container');
+        if (!dropTarget || !draggedItem) return;
+        dropTarget.classList.remove('drop-zone');
+
+        if (draggedItem.isCategory) {
+            const toCategoryIndex = Array.from(dropTarget.children).indexOf(e.target.closest('.category'));
+            const [movedCategory] = bookmarksData.categories.splice(draggedItem.fromCategoryIndex, 1);
+            bookmarksData.categories.splice(toCategoryIndex, 0, movedCategory);
+        } else {
+            const toCategoryIndex = parseInt(dropTarget.dataset.categoryIndex);
+            const afterElement = e.target.closest('.star');
+            const toStarIndex = afterElement ? parseInt(afterElement.dataset.starIndex) : bookmarksData.categories[toCategoryIndex].stars.length;
+            const [movedStar] = bookmarksData.categories[draggedItem.fromCategoryIndex].stars.splice(draggedItem.fromStarIndex, 1);
+            if (!bookmarksData.categories[toCategoryIndex].stars) bookmarksData.categories[toCategoryIndex].stars = [];
+            bookmarksData.categories[toCategoryIndex].stars.splice(toStarIndex, 0, movedStar);
+        }
+        draggedItem = null;
+        renderEditor();
+    }
+
+    // Import / Export
+    function handleFileSelect(event) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (importedData && importedData.data && importedData.categories) {
+                    bookmarksData = importedData;
+                    renderEditor();
+                } else {
+                    alert('Invalid bookmarks JSON file format.');
+                }
+            } catch (error) { alert('Error parsing JSON file: ' + error.message); }
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+
+    function exportJson() {
+        const jsonString = JSON.stringify(bookmarksData, null, 4);
+        const blob = new Blob([jsonString], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'bookmarks.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    window.onload = initialize;
+</script>
+
+</body>
+</html>
