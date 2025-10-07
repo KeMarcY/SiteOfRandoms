@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moodle | 2025/10/07</title>
+    <style>
+        /* Alapértelmezett (Sötét Mód) Stílusok */
+        :root {
+            --bg-color: #1a1a1a;
+            --container-bg: #2c2c2c;
+            --question-bg: #3a3a3a;
+            --option-bg: #4f4f4f;
+            --option-hover-bg: #5a5a5a;
+            --text-color: #f0f0f0;
+            --border-color: #444;
+            --primary-color: #3498db;
+            --primary-hover-color: #2980b9;
+            --h1-color: var(--primary-color);
+            --code-bg: #1e1e1e;
+            --code-color: #d4d4d4;
+            --correct-feedback-bg: #1c4b2a;
+            --correct-feedback-color: #d4edda;
+            --correct-border: #28a745;
+            --incorrect-feedback-bg: #5a2126;
+            --incorrect-feedback-color: #f8d7da;
+            --incorrect-border: #dc3545;
+        }
+
+        /* Világos Mód Stílusok */
+        body.light-mode {
+            --bg-color: #f4f4f4;
+            --container-bg: #ffffff;
+            --question-bg: #ecf0f1;
+            --option-bg: #ffffff;
+            --option-hover-bg: #f9f9f9;
+            --text-color: #333333;
+            --border-color: #dddddd;
+            --h1-color: #2c3e50;
+            --code-bg: #e8e8e8;
+            --code-color: #333;
+            --correct-feedback-bg: #d4edda;
+            --correct-feedback-color: #155724;
+            --correct-border: #c3e6cb;
+            --incorrect-feedback-bg: #f8d7da;
+            --incorrect-feedback-color: #721c24;
+            --incorrect-border: #f5c6cb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: var(--container-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--h1-color);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .button:hover {
+            background-color: var(--primary-hover-color);
+            transform: translateY(-2px);
+        }
+
+        .question {
+            background-color: var(--question-bg);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .question-text {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .options { list-style-type: none; padding: 0; margin: 0; }
+        .option {
+            background-color: var(--option-bg);
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .option:hover { background-color: var(--option-hover-bg); border-color: var(--primary-color); }
+        .light-mode .option.selected { background-color: #eaf5ff; }
+        body:not(.light-mode) .option.selected { background-color: #405a70; }
+
+        .feedback {
+            margin-top: 15px; padding: 12px; border-radius: 5px;
+            display: none; font-weight: bold;
+        }
+        .feedback.correct {
+            background-color: var(--correct-feedback-bg); color: var(--correct-feedback-color);
+            border: 1px solid var(--correct-border); display: block;
+        }
+        .feedback.incorrect {
+            background-color: var(--incorrect-feedback-bg); color: var(--incorrect-feedback-color);
+            border: 1px solid var(--incorrect-border); display: block;
+        }
+
+        .correct-glow {
+            background-color: #2c6b3c !important; border-color: #28a745 !important;
+            box-shadow: 0 0 12px 2px rgba(40, 167, 69, 0.7);
+        }
+        .wrong-glow {
+            background-color: #7a3b41 !important; border-color: #dc3545 !important;
+            box-shadow: 0 0 12px 2px rgba(220, 53, 69, 0.7);
+        }
+        
+        code {
+            background-color: var(--code-bg); color: var(--code-color);
+            padding: 2px 6px; border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .score-box {
+            background-color: var(--question-bg); color: var(--text-color);
+            padding: 15px 20px; margin-top: 20px; border-radius: 8px;
+            text-align: center; font-size: 1.2em; font-weight: bold;
+            border-top: 3px solid var(--primary-color); display: none;
+        }
+
+        /* Téma váltó kapcsoló */
+        .theme-switch-wrapper { display: flex; align-items: center; }
+        .theme-switch {
+            position: relative; display: inline-block;
+            width: 50px; height: 24px; margin: 0 10px;
+        }
+        .theme-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #555;
+            transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(26px); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Moodle - 2025/10/07</h1>
+        <div class="controls">
+            <button class="button" onclick="showAllCorrectAnswers()">Összes Helyes Válasz Mutatása</button>
+            <button class="button" onclick="resetQuiz()">Kvíz Újraindítása</button>
+            <div class="theme-switch-wrapper">
+                <span>🌙</span>
+                <label class="theme-switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span>☀️</span>
+            </div>
+        </div>
+
+        <div id="quiz-container"></div>
+        <div id="score-box" class="score-box"></div>
+    </div>
+
+    <script>
+        const quizData = [
+            { question: "Mi az az eszköz, ami automatikusan biztosítja egy objektum függőségeit, amikor arra szükség van? Például: <code>IDataBase context = Services.Resolve();</code>", options: ["IoC Container", "Factory Pattern", "SQL Injector", "Singleton"], answer: "IoC Container" },
+            { question: "Melyik nem egy HTTP kéréstípus?", options: ["PUT", "GET", "POST", "UPDATE", "DELETE"], answer: "UPDATE" },
+            { question: "Mit nem tartalmaznak egy HTTP kérés fejléc információi?", options: ["A kliens által preferált nyelveket (Accept-Language: hu-HU)", "A szervernek küldött cookie-kat (Cookie: sessionId=abc123)", "A kérés törzsének formátumát (Content-Type: application/json)", "A HTTP metódust és az URL-t (GET és /index.html HTTP/1.1)", "A kliensalkalmazás adatait (User-Agent: Mozilla/5.0)"], answer: "A HTTP metódust és az URL-t (GET és /index.html HTTP/1.1)" },
+            { question: "Hogyan adható meg egy adatbázis létrehozásakor, hogy a szövegek rendezése a magyar nyelv szabályait kövesse a kis- és nagybetűk mellőzésével?", options: ["... CHARSET 'utf8' LANG 'hu' COLLATE 'ci'", "... CHARSET 'utf8' LANG 'hungarian' CI", "... COLLATE 'utf8_hungarian' NOT SENSITIVE", "... COLLATE 'utf8_hungarian_ci'"], answer: "... COLLATE 'utf8_hungarian_ci'" },
+            { question: "Melyik eszköz való adatbázisok tervezésének korai szakaszában az objektumok és kapcsolataik vizuális ábrázolására, az implementációs megszorítások nélkül.", options: ["Entity Relationship modell", "Struktogram", "Venn-diagram", "Relációs adatmodell", "Gantt-diagram"], answer: "Entity Relationship modell" },
+            { question: "Az alábbiak közül melyik nem backend fejlesztéséhez használt csomagkezelő?", options: ["jQuery (JavaScript)", "Composer (PHP)", "Gradle (Java)", "NuGet (.NET)", "Npm (Node.js)"], answer: "jQuery (JavaScript)" },
+            { question: "Milyen kifejezést kell írni a [ pattern ] helyére, hogy az összes olyan szakma megnevezése jelenjen meg a lekérdezésben, ami a „ tesztelő” szóra végződik? <br><code>SELECT * FROM szakmak WHERE megnevezes LIKE \"[ pattern ]\"</code>", options: ["% tesztelő", "* tesztelő", ". tesztelő", "_ tesztelő", "? tesztelő"], answer: "% tesztelő" },
+            { question: "Az alábbiak közül melyik adatbázis-kezelő rendszer nem használ relációs modellt?", options: ["MySQL", "MariaDB", "SQLite", "PostgreSQL", "MongoDB"], answer: "MongoDB" },
+            { question: "Mi a különbség a PRIMARY KEY és a UNIQUE megszorítások között?", options: ["A PRIMARY KEY nem lehet másik táblában idegen kulcs", "A PRIMARY KEY nem kell, hogy egyedi legyen", "A UNIQUE értékek nem kerülnek indexelésre", "A UNIQUE mezők kitöltése nem kötelező", "Az egyik egy MySQL megkötés, a másik az MS SQL megfelelője"], answer: "A UNIQUE mezők kitöltése nem kötelező" },
+            { question: "Mi nem tartozik a „ViewModel” feladatai közé?", options: ["A megjelenítést egyszerűsíti, az adatkötés támogatja", "A tesztelhetőség elősegítése, függetlenség a megjelenítéstől", "Eseményeket és parancsokat közvetíti két réteg között", "Egyetlen osztályba olvasztja a View és a Modell szerepeit"], answer: "Egyetlen osztályba olvasztja a View és a Modell szerepeit" },
+            { question: "Melyik nem egy HTTP válaszkód?", options: ["604 Index Out of Range", "418 I’m a teapot", "502 Bad Gateway", "200 OK", "307 Temporary Redirect"], answer: "604 Index Out of Range" },
+            { question: "Melyik kulcsszó szűri ki egy mező ismétlődő értékeit a lekérdezés eredményéből?", options: ["UNIQUE", "NO DUPLICATE", "DISTINCT", "INDEX", "NO REPEAT"], answer: "DISTINCT" },
+            { question: "Egy rétegelt felépítésű alkalmazásban általában mi a „controller” feladata?", options: ["az adatbáziskapcsolat és hálózati kommunikáció fenntartása", "a felhasználói felület megjelenítése és elrendezése", "az alkalmazás adatainak tárolása, módosítása, kezelése", "az adatok ellenőrzése, a jogosultságok kezelése, naplózás", "a felhasználó által kezdeményezett műveletetek fogadása és kezelése"], answer: "a felhasználó által kezdeményezett műveletetek fogadása és kezelése" },
+            { question: "Melyik záradékkal lehet befolyásolni a megjelenített rekordok számát?", options: ["TAKE", "OFFSET", "LIMIT", "SKIP", "MAX"], answer: "LIMIT" },
+            { question: "Melyik tervezési mintát alkalmazzuk, amikor az alkalmazás felépítését a következő rétegekre osztjuk: Megjelenítés ↔ Vezérlő logika ↔ Adatállapotok", options: ["MVC", "SPA", "SOLID", "MVVM", "REST"], answer: "MVC" },
+            { question: "Mihez nem adhatunk álnevet (alias)?", options: ["Egy táblának", "Egy adatbázisnak", "Egy számítás eredményének", "Egy mezőnek", "Egy lekérdezésnek"], answer: "Egy adatbázisnak" },
+            { question: "Hogyan nevezzük a technikát, amikor egy osztály függőségeit a konstruktoron keresztül adjuk át? Például: <code>public FelhasználóKezelő(IDatabase context) { }</code>", options: ["Interface Implementation", "SQL Separation", "Interface Inversion", "Dependency Injection", "SQL Injection"], answer: "Dependency Injection" },
+            { question: "Hogyan szűrhetünk a versenyzők között az első és második helyezettekre?", options: ["... WHERE helyezes BETWEEN 0 AND 3", "... WHERE helyezes IN (1, 2)", "... WHERE helyezes = 1 AND 2", "... WHERE helyezes = 1 OR 2", "... WHERE helyezes = 1 AND helyezes = 2"], answer: "... WHERE helyezes IN (1, 2)" },
+            { question: "Melyik kifejezés ellenőrzi, hogy egy mező értéke kitöltetlen?", options: ["NOT EMPTY", "IS EMPTY", "IS NULL OR EMPTY", "IS NULL", "NOT NULL"], answer: "IS NULL" },
+            { question: "Hogyan tárolja a REST kialakítású szerver a korábbi kérések állapotát?", options: ["socket használatával", "sehogyan, nem tárolja ezeket", "session segítségével", "cookie fájlokban"], answer: "sehogyan, nem tárolja ezeket" },
+            { question: "Melyik a javasolt URL felépítés egy RESTful felület tervezésekor, ha a végponttól különböző években szervezett versenyek indulóinak eredményét kérhetjük el?", options: ["/getEredmeny/2025/getVersenyzo/1", "/getVersenyzoEredmeny?ev=2025&id=1", "/eredmeny/?ev=2025&id=1", "/eredmeny/2025/versenyzo/1"], answer: "/eredmeny/2025/versenyzo/1" },
+            { question: "Melyik SQL JOIN típus választja ki azokat a rekordokat, amelyek mindkét táblában megfelelnek a csatlakozási feltételnek?", options: ["INNER JOIN", "OUTER JOIN", "FULL JOIN", "CROSS JOIN", "LEFT JOIN"], answer: "INNER JOIN" },
+            { question: "Csoportosítás után milyen záradékkal tudunk további szűrési feltételeket megadni?", options: ["HAVING", "WHERE", "FILTER", "GROUP BY", "ORDER BY"], answer: "HAVING" },
+            { question: "Melyik nem egy ORM keretrendszer?", options: ["Postman (REST API)", "Sequelize (Node.js)", "Java Persistence API (Java)", "Eloquent (PHP, Laravel)", "Entity Framework (C# .NET)"], answer: "Postman (REST API)" },
+            { question: "Az ORM egy réteget képez az objektumorientált program és a relációs adatbázis között, amivel hatékonyabbá válhat a fejlesztés. Melyik nem tartozik az előnyei közé?", options: ["képes kezelni az osztályok közötti 1:1, 1:N, N:N kapcsolatot", "SQL utasítások kiválthatók példányok manipulálásával", "elfedi az eltérő adatbázis-kezelő rendszerek különbségeit", "garantálja bonyolult lekérdezések optimális futtatását", "a táblákat osztályokká képezi le"], answer: "garantálja bonyolult lekérdezések optimális futtatását" },
+            { question: "Melyik DDL utasítással tudunk egy tábla szerkezetén módosítani?", options: ["MODIFY", "CREATE", "ALTER", "TRUNCATE", "UPDATE"], answer: "ALTER" },
+            { question: "Melyik fogalom nem tartozik az CRUD műveletek közé?", options: ["adatok ellenőrzése", "adatok eltávolítása", "adatok megtekintése", "adatok létrehozása", "adatok módosítása"], answer: "adatok ellenőrzése" },
+            { question: "Hogyan lehet egy lekérdezett mező értékéhez szöveget hozzáfűzni? (Például a mérések táblában a távolság oszlop értékéhez a kilométer mértékegységet)", options: ['SELECT CONCAT(tavolsag, "km") FROM meresek', 'SELECT "{tavolsag} km" FROM meresek', 'SELECT tavolsag APPEND "km" FROM meresek', 'SELECT tavolsag + "km" FROM meresek', 'SELECT JOIN(tavolsag, "km") FROM meresek'], answer: 'SELECT CONCAT(tavolsag, "km") FROM meresek' },
+            { question: "Melyik adattípus alkalmas nagy mennyiségű szöveg tárolására a legtöbb SQL rendszerben? (például legfeljebb 100.000 karakter hosszú blog bejegyzésre)", options: ["STRING", "TEXT", "CHAR(100.000)", "BLOB", "VARCHAR(100.000)"], answer: "TEXT" },
+            { question: "Melyik a legelterjedtebb leíró formátum webszolgáltatások között, ami mélyen strukturált adatok tárolására képes könnyen olvasható alakban?", options: ["XHTML", "XAML", "Markdown", "CSV", "JSON"], answer: "JSON" }
+        ];
+
+        const quizContainer = document.getElementById('quiz-container');
+        const scoreBox = document.getElementById('score-box');
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        let selectedAnswers = {};
+
+        // --- Téma Kezelés ---
+        function applyTheme(theme) {
+            if (theme === 'light-mode') {
+                body.classList.add('light-mode');
+                themeToggle.checked = true;
+            } else {
+                body.classList.remove('light-mode');
+                themeToggle.checked = false;
+            }
+        }
+        
+        themeToggle.addEventListener('change', () => {
+            const theme = themeToggle.checked ? 'light-mode' : 'dark-mode';
+            localStorage.setItem('theme', theme);
+            applyTheme(theme);
+        });
+        
+        // --- Kvíz Logika ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function renderQuiz() {
+            quizContainer.innerHTML = '';
+            shuffleArray(quizData);
+            quizData.forEach((item, index) => {
+                const questionElement = document.createElement('div');
+                questionElement.classList.add('question');
+                questionElement.setAttribute('id', `question-${index}`);
+
+                questionElement.innerHTML = `
+                    <p class="question-text">${index + 1}. ${item.question}</p>
+                    <ul class="options">${shuffleOptions(item.options, index)}</ul>
+                    <button class="button" onclick="checkAnswer(${index})">Válasz Ellenőrzése</button>
+                    <div class="feedback" id="feedback-${index}"></div>
+                `;
+                quizContainer.appendChild(questionElement);
+            });
+        }
+        
+        function shuffleOptions(options, questionIndex) {
+            let shuffled = [...options];
+            shuffleArray(shuffled);
+            return shuffled.map(option => 
+                `<li class="option" onclick="selectAnswer(${questionIndex}, this)">${option}</li>`
+            ).join('');
+        }
+
+        function selectAnswer(questionIndex, element) {
+            const questionElement = document.getElementById(`question-${questionIndex}`);
+            const options = questionElement.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected', 'correct-glow', 'wrong-glow'));
+            
+            element.classList.add('selected');
+            selectedAnswers[questionIndex] = element.textContent;
+            document.getElementById(`feedback-${questionIndex}`).style.display = 'none';
+        }
+
+        function checkAnswer(questionIndex) {
+            const question = quizData[questionIndex];
+            const userAnswer = selectedAnswers[questionIndex];
+            const feedbackElement = document.getElementById(`feedback-${questionIndex}`);
+            const options = document.getElementById(`question-${questionIndex}`).querySelectorAll('.option');
+            const selectedOptionElement = Array.from(options).find(opt => opt.classList.contains('selected'));
+
+            if (!selectedOptionElement) {
+                feedbackElement.textContent = 'Kérlek, válassz egy választ!';
+                feedbackElement.className = 'feedback incorrect';
+                return;
+            }
+
+            const correctOptionElement = Array.from(options).find(opt => opt.textContent === question.answer);
+
+            if (userAnswer === question.answer) {
+                feedbackElement.textContent = 'Helyes válasz!';
+                feedbackElement.className = 'feedback correct';
+                selectedOptionElement.classList.add('correct-glow');
+            } else {
+                feedbackElement.textContent = `Hibás válasz. A helyes válasz: ${question.answer}`;
+                feedbackElement.className = 'feedback incorrect';
+                selectedOptionElement.classList.add('wrong-glow');
+                correctOptionElement?.classList.add('correct-glow');
+            }
+            updateScore();
+        }
+
+        function updateScore() {
+            let correctCount = 0;
+            const totalQuestions = quizData.length;
+            for (let i = 0; i < totalQuestions; i++) {
+                if (selectedAnswers[i] && selectedAnswers[i] === quizData[i].answer) {
+                    correctCount++;
+                }
+            }
+            const percentage = totalQuestions > 0 ? ((correctCount / totalQuestions) * 100).toFixed(2) : 0;
+            scoreBox.innerHTML = `Eredmény: ${correctCount} / ${totalQuestions} (${percentage}%)`;
+            scoreBox.style.display = 'block';
+        }
+        
+        function showAllCorrectAnswers() {
+            quizData.forEach((item, index) => {
+                const options = document.getElementById(`question-${index}`).querySelectorAll('.option');
+                options.forEach(option => {
+                    option.classList.remove('correct-glow', 'wrong-glow', 'selected'); 
+                    if (option.textContent === item.answer) {
+                        option.classList.add('correct-glow');
+                    }
+                });
+                document.getElementById(`feedback-${index}`).style.display = 'none';
+            });
+            scoreBox.style.display = 'none';
+        }
+        
+        function resetQuiz() {
+            selectedAnswers = {};
+            scoreBox.style.display = 'none';
+            renderQuiz();
+        }
+
+        // --- Inicializálás ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark-mode';
+            applyTheme(savedTheme);
+            renderQuiz();
+        });
+    </script>
+</body>
+</html>
