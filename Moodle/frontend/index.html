@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moodle | 2025/10/07</title>
+    <style>
+        /* Alapértelmezett (Sötét Mód) Stílusok */
+        :root {
+            --bg-color: #1a1a1a;
+            --container-bg: #2c2c2c;
+            --question-bg: #3a3a3a;
+            --option-bg: #4f4f4f;
+            --option-hover-bg: #5a5a5a;
+            --text-color: #f0f0f0;
+            --border-color: #444;
+            --primary-color: #3498db;
+            --primary-hover-color: #2980b9;
+            --h1-color: var(--primary-color);
+            --code-bg: #1e1e1e;
+            --code-color: #d4d4d4;
+            --correct-feedback-bg: #1c4b2a;
+            --correct-feedback-color: #d4edda;
+            --correct-border: #28a745;
+            --incorrect-feedback-bg: #5a2126;
+            --incorrect-feedback-color: #f8d7da;
+            --incorrect-border: #dc3545;
+        }
+
+        /* Világos Mód Stílusok */
+        body.light-mode {
+            --bg-color: #f4f4f4;
+            --container-bg: #ffffff;
+            --question-bg: #ecf0f1;
+            --option-bg: #ffffff;
+            --option-hover-bg: #f9f9f9;
+            --text-color: #333333;
+            --border-color: #dddddd;
+            --h1-color: #2c3e50;
+            --code-bg: #e8e8e8;
+            --code-color: #333;
+            --correct-feedback-bg: #d4edda;
+            --correct-feedback-color: #155724;
+            --correct-border: #c3e6cb;
+            --incorrect-feedback-bg: #f8d7da;
+            --incorrect-feedback-color: #721c24;
+            --incorrect-border: #f5c6cb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: var(--container-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--h1-color);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .button:hover {
+            background-color: var(--primary-hover-color);
+            transform: translateY(-2px);
+        }
+
+        .question {
+            background-color: var(--question-bg);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border-left: 5px solid var(--primary-color);
+        }
+
+        .question-text {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .options { list-style-type: none; padding: 0; margin: 0; }
+        .option {
+            background-color: var(--option-bg);
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .option:hover { background-color: var(--option-hover-bg); border-color: var(--primary-color); }
+        .light-mode .option.selected { background-color: #eaf5ff; }
+        body:not(.light-mode) .option.selected { background-color: #405a70; }
+
+        .feedback {
+            margin-top: 15px; padding: 12px; border-radius: 5px;
+            display: none; font-weight: bold;
+        }
+        .feedback.correct {
+            background-color: var(--correct-feedback-bg); color: var(--correct-feedback-color);
+            border: 1px solid var(--correct-border); display: block;
+        }
+        .feedback.incorrect {
+            background-color: var(--incorrect-feedback-bg); color: var(--incorrect-feedback-color);
+            border: 1px solid var(--incorrect-border); display: block;
+        }
+
+        .correct-glow {
+            background-color: #2c6b3c !important; border-color: #28a745 !important;
+            box-shadow: 0 0 12px 2px rgba(40, 167, 69, 0.7);
+        }
+        .wrong-glow {
+            background-color: #7a3b41 !important; border-color: #dc3545 !important;
+            box-shadow: 0 0 12px 2px rgba(220, 53, 69, 0.7);
+        }
+        
+        code {
+            background-color: var(--code-bg); color: var(--code-color);
+            padding: 2px 6px; border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .score-box {
+            background-color: var(--question-bg); color: var(--text-color);
+            padding: 15px 20px; margin-top: 20px; border-radius: 8px;
+            text-align: center; font-size: 1.2em; font-weight: bold;
+            border-top: 3px solid var(--primary-color); display: none;
+        }
+
+        /* Téma váltó kapcsoló */
+        .theme-switch-wrapper { display: flex; align-items: center; }
+        .theme-switch {
+            position: relative; display: inline-block;
+            width: 50px; height: 24px; margin: 0 10px;
+        }
+        .theme-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #555;
+            transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(26px); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Moodle - 2025/10/07</h1>
+        <div class="controls">
+            <button class="button" onclick="showAllCorrectAnswers()">Összes Helyes Válasz Mutatása</button>
+            <button class="button" onclick="resetQuiz()">Kvíz Újraindítása</button>
+            <div class="theme-switch-wrapper">
+                <span>🌙</span>
+                <label class="theme-switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <span class="slider"></span>
+                </label>
+                <span>☀️</span>
+            </div>
+        </div>
+
+        <div id="quiz-container"></div>
+        <div id="score-box" class="score-box"></div>
+    </div>
+
+    <script>
+        const quizData = [
+    {
+        question: "Kinek a nevéhez köthető a HTML nyelv alapjainak kidolgozása?",
+        options: ["Tim Berners-Lee (CERN)", "Steve Jobs (Apple)", "Bill Gates (Microsoft)", "Larry Page (Google)", "Linus Torvalds (Linux Foundation)"],
+        answer: "Tim Berners-Lee (CERN)"
+    },
+    {
+        question: "Melyik évtizedben született meg a HTML nyelv?",
+        options: ["1960-es évek – DARPA, ARPANET", "1970-es évek – internet, TCP/IP", "1980-as évek – PC elterjedése", "1990-es évek – világháló", "2000-es évek – dotcom boom"],
+        answer: "1990-es évek – világháló"
+    },
+    {
+        question: "A \"böngészőháború\" végére az Internet Explorer vált a domináns alkalmazássá. Melyik böngésző vesztette el a piaci részesedését, és vált mára szinte ismeretlenné?",
+        options: ["Apple Safari", "Mozilla Firefox", "Netscape Nagivator", "Microsoft Edge", "Opera"],
+        answer: "Netscape Nagivator"
+    },
+    {
+        question: "A jelenlegi HTML5 az úgynevezett \"Living Standard\" része. Mikorra várható a következő nagy kiadása, esetleg ismert-e már annak a fantázia neve?",
+        options: ["Az 5.3 verziót már most is használjuk, a Bootstrap számozását követi", "A HTML6 határozatlan időre csúszik az AI technológiák miatt", "Az új verzió neve PHTML lesz, jelentése Python/PHP + HTML", "A folyamatosan bővülő szabványnak nem lesz több nagyverziója"],
+        answer: "A folyamatosan bővülő szabványnak nem lesz több nagyverziója"
+    },
+    {
+        question: "Melyik HTML5-ben bevezetett szemantikus elemmel jelölhetjük az oldal fő tartalmát, amely a dokumentum legfontosabb része?",
+        options: ["< body >", "< main >", "< section class = \"main\" >", "< div id = \"content\" >"],
+        answer: "< main >"
+    },
+    {
+        question: "Egy szövegrészlet félkövér megjelenítésére néhány fejlesztő a < b > taget, mások a < strong > elemet használják. Valójában mi a különbség a két címke között?",
+        options: ["Korábban volt köztük különbség, de ma már nincs jelentősége.", "A < b > elem már nem szabványos, bár böngészők még támogatják", "A < strong > vizuális megjelenítésen túl szemantikai jelentéssel bír", "A < strong > csak a kód olvashatóságát javítja, mert nem rövidítés", "A < strong > elemmel tehetünk vastagabbá már félkövér < b > elemet"],
+        answer: "A < strong > vizuális megjelenítésen túl szemantikai jelentéssel bír"
+    },
+    {
+        question: "Milyen tag jelöli egy táblázat egyetlen fejléc celláját?",
+        options: ["< head >", "< header >", "< thead >", "< th >", "< td >"],
+        answer: "< th >"
+    },
+    {
+        question: "Hogyan hozható létre hivatkozás az oldal „forrasok” azonosítójú eleméhez?",
+        options: ["< link href = \"#forrasok\" >", "< link id = \"forrasok\" >", "< href id = \"forrasok\" >", "< a href = \"forrasok\" >", "< a href = \"#forrasok\" >"],
+        answer: "< a href = \"#forrasok\" >"
+    },
+    {
+        question: "A <select> választólistához milyen HTML taggel rendelhető választási lehetőségek?",
+        options: ["< label >", "< choice >", "< option >", "< input >", "< value >"],
+        answer: "< option >"
+    },
+    {
+        question: "Melyik szelektor színezi pirosra kizárólag a menüsorban szereplő hivatkozásokat?",
+        options: ["a:nav { color: red; }", "nav:a { color: red; }", "nav a { color: red; }", "nav.a { color: red; }", "a.nav { color: red; }"],
+        answer: "nav a { color: red; }"
+    },
+    {
+        question: "Hogyan tudunk egy weboldalon minden szöveget Verdana betűtípusúra állítani?",
+        options: ["html { font : Verdana; }", "html { text : Verdana; }", "font { family : Verdana; }", "body { font-text : Verdana; }", "body { font-family : Verdana; }"],
+        answer: "body { font-family : Verdana; }"
+    },
+    {
+        question: "Melyik CSS szelektorral tudunk kiválasztani egy olyan „div” elemet, ami rendelkezik „mandatory” osztállyal és „gdpr” azonosítóval?",
+        options: ["div.mandatory#gdpr", "div#mandatory.gdpr", "div { .mandatory { #gdpr { … } } }", "div { #mandatory { .gdpr { … } } }", "div class=\"mandatory\" id=\"gdpr\""],
+        answer: "div.mandatory#gdpr"
+    },
+    {
+        question: "Számos előnye lehet a Bootstrap keretrendszer CDN-en (Content Delivery Network) keresztül történő használatának. Az alábbiak közül melyik válasz téves?",
+        options: ["Csökkenthető a hálózati forgalom a cache használata miatt", "Általában alacsonyabb a válaszidő a közelebbi szervertől", "Automatikusan hozzáférhetünk a legfrissebb verzióhoz", "A gyorsítótár kihasználása javítja a betöltési időt"],
+        answer: "Automatikusan hozzáférhetünk a legfrissebb verzióhoz"
+    },
+    {
+        question: "A gutter osztályt a Bootstrap 5.0 verziójában vezették be. De a szintaktikája hasonló a margin vagy padding osztályéhoz. Hogyan tudunk 5 egységnyi guttert beállítani?",
+        options: ["style = \"gutter : 5px;\"", ". gutter { 5em ; }", "class = \"gutter-5\"", "class = \"g-5\""],
+        answer: "class = \"g-5\""
+    },
+    {
+        question: "Mi a szerepe egy HTML oldalon a meta tagben elhelyezett viewport beállításnak?",
+        options: ["a reszponzív Bootstrap Rács / Grid csak így tud működni", "az oldal méretezésért felel különböző felbontású eszközökön", "megállapítja, hogy az eszköz álló vagy fekvő elrendezésű", "a keresőmotoroknál jobb rangsorolását biztosít", "az oldal betűméretét automatikus méretezi"],
+        answer: "az oldal méretezésért felel különböző felbontású eszközökön"
+    },
+    {
+        question: "Milyen kódot nem írhatunk JavaScriptben?",
+        options: ["kliens oldalit", "szerver oldalit", "alacsony szintűt", "magas szintűt", "objektum-orientáltat"],
+        answer: "alacsony szintűt"
+    },
+    {
+        question: "Hogyan nevezzük a weboldal struktúráját reprezentáló programozható modellt, ami lehetővé teszi szkriptek számára az oldal elemeinek elérését és módosítását?",
+        options: ["AOM (Application Object Model)", "BOM (Browser Object Model)", "COM (Content Object Model)", "DOM (Document Object Model)", "EOM (Element Object Model)"],
+        answer: "DOM (Document Object Model)"
+    },
+    {
+        question: "Mi az az „ECMAScript”, és mért jelentős az ES6 verziója?",
+        options: ["A JavaScript szabványa, a modern nyelvi elemek bevezetésének kezdete", "A JavaScript őse, ebből és a Java szavak ötvözetéből származik a név", "A JavaScript következő verziója, amit 2026-ra terveznek bevezetni", "Egy frontend keretrendszer, ami a 6-os verzió óta piacvezető", "Egy frontendfejlesztő könyvtár, ami a 6-os verzió óta piacvezető"],
+        answer: "A JavaScript szabványa, a modern nyelvi elemek bevezetésének kezdete"
+    },
+    {
+        question: "Melyik igaz a JavaScript változók típusosságára?",
+        options: ["szigorú és statikus (fordításkor kell meghatározni és nem változhat)", "gyenge és dinamikus (futási időben az aktuálisan tárolt értéktől függ)", "típusmentes (nincs jelentősége a változóban tárolt érték típusának)", "multitípusos (a tárolt értéknek egyszerre többféle típusa is lehet)", "objektum-orientált (a típusok valójában osztályok példányai)"],
+        answer: "gyenge és dinamikus (futási időben az aktuálisan tárolt értéktől függ)"
+    },
+    {
+        question: "Melyik kulcsszó vezet be olyan változót, ami már a deklarációja előtt is használható (hoisting), később is szabadon újra deklarálható, és akár globális hatókörű is lehet?",
+        options: ["let", "var", "const", "Ez mindhárom kulcsszóra igaz", "Semelyik nem tudja ezeket együtt"],
+        answer: "var"
+    },
+    {
+        question: "Melyik JavaScript metódus ad vissza egy új tömböt az eredeti változtatása nélkül?",
+        options: ["tomb . filter ( )", "tomb . peek ( )", "tomb . sort ( )", "tomb . clone ( )"],
+        answer: "tomb . filter ( )"
+    },
+    {
+        question: "Melyik JavaScriptben létező metódussal szúrhatunk be új elemet a tömb elejére?",
+        options: [". insert ( 0 , érték)", ". push ( 0 , érték )", ". append ( érték )", ". unshift ( érték )"],
+        answer: ". unshift ( érték )"
+    },
+    {
+        question: "Milyen formátumot ellenőrzi ez a reguláris kifejezés: ^[1-9][0-9]{2} [0-9]{3} \\d{3}$",
+        options: ["Telefonszámot (061 234 567)", "TAJ számot (123 456 789)", "Személyiszámot (123 456 AB)", "Bankszámlaszámot (1111 2222 opcionális 3333 4444)"],
+        answer: "TAJ számot (123 456 789)"
+    },
+    {
+        question: "Mi lesz egy „ for ... of ” ciklus eredménye a book objektum bejárásakor?",
+        options: ["Típushiba, mert az objektum nem iteráltható", "Kulcs-érték párok ( \"year\" : 2024 )", "Az objektum kulcsai ( \"year\" )", "Az objektum értékei ( 2024 )"],
+        answer: "Típushiba, mert az objektum nem iteráltható"
+    },
+    {
+        question: "Mi lesz egy „ for ... in ” ciklus eredménye a user objektum bejárásakor?",
+        options: ["Undefined értékek, mert nem tud objektumot iterálni", "Kulcs-érték párok ( 'id' : 2024 )", "Az objektum kulcsai ( 'id' )", "Az objektum értékei ( 2024 )"],
+        answer: "Az objektum kulcsai ( 'id' )"
+    },
+    {
+        question: "Hogyan iratkozhatunk fel egy „handler” nevű függvénnyel arra eseményre, amit az oldal teljes tartalmának betöltése után vált ki az ablak?",
+        options: ["window . addEventListener ( 'onLoaded' , handler )", "window . addEventListener ( 'load' , handler)", "window . loaded = handler", "window . isReady = handler"],
+        answer: "window . addEventListener ( 'load' , handler)"
+    },
+    {
+        question: "Mire használjuk a Promise objektumot?",
+        options: ["Ennek segítségével tudjuk elkerülni az aszinkron működést", "A használatával kezelhetjük az async kulcsszó kivételeit", "Ezzel reprezentáljuk egy jövőbeni művelet eredményét", "Egy aszinkron függvénynek lehet vele paramétert átadni"],
+        answer: "Ezzel reprezentáljuk egy jövőbeni művelet eredményét"
+    },
+    {
+        question: "Melyik függvény hívásával tudunk egy szerverhez kérést intézni?",
+        options: ["http ( url )", "get ( url )", "fetch ( url )", "request ( url )", "response ( url )"],
+        answer: "fetch ( url )"
+    },
+    {
+        question: "Milyen programozási felületet használ egy alkalmazás ahhoz, hogy HTTP üzeneteken keresztül kérjen adatot egy másik webes szolgáltatástól?",
+        options: ["SSH", "SQL", "CLI", "GUI", "API"],
+        answer: "API"
+    },
+    {
+        question: "Melyik nem egy tartalomkezelő-rendszer (Content Management System / CMS)?",
+        options: ["WordPress", "Joomla!", "Drupal", "Ajax", "SquareSpace"],
+        answer: "Ajax"
+    }
+];
+
+        const quizContainer = document.getElementById('quiz-container');
+        const scoreBox = document.getElementById('score-box');
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        let selectedAnswers = {};
+
+        // --- Téma Kezelés ---
+        function applyTheme(theme) {
+            if (theme === 'light-mode') {
+                body.classList.add('light-mode');
+                themeToggle.checked = true;
+            } else {
+                body.classList.remove('light-mode');
+                themeToggle.checked = false;
+            }
+        }
+        
+        themeToggle.addEventListener('change', () => {
+            const theme = themeToggle.checked ? 'light-mode' : 'dark-mode';
+            localStorage.setItem('theme', theme);
+            applyTheme(theme);
+        });
+        
+        // --- Kvíz Logika ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function renderQuiz() {
+            quizContainer.innerHTML = '';
+            shuffleArray(quizData);
+            quizData.forEach((item, index) => {
+                const questionElement = document.createElement('div');
+                questionElement.classList.add('question');
+                questionElement.setAttribute('id', `question-${index}`);
+
+                questionElement.innerHTML = `
+                    <p class="question-text">${index + 1}. ${item.question}</p>
+                    <ul class="options">${shuffleOptions(item.options, index)}</ul>
+                    <button class="button" onclick="checkAnswer(${index})">Válasz Ellenőrzése</button>
+                    <div class="feedback" id="feedback-${index}"></div>
+                `;
+                quizContainer.appendChild(questionElement);
+            });
+        }
+        
+        function shuffleOptions(options, questionIndex) {
+            let shuffled = [...options];
+            shuffleArray(shuffled);
+            return shuffled.map(option => 
+                `<li class="option" onclick="selectAnswer(${questionIndex}, this)">${option}</li>`
+            ).join('');
+        }
+
+        function selectAnswer(questionIndex, element) {
+            const questionElement = document.getElementById(`question-${questionIndex}`);
+            const options = questionElement.querySelectorAll('.option');
+            options.forEach(opt => opt.classList.remove('selected', 'correct-glow', 'wrong-glow'));
+            
+            element.classList.add('selected');
+            selectedAnswers[questionIndex] = element.textContent;
+            document.getElementById(`feedback-${questionIndex}`).style.display = 'none';
+        }
+
+        function checkAnswer(questionIndex) {
+            const question = quizData[questionIndex];
+            const userAnswer = selectedAnswers[questionIndex];
+            const feedbackElement = document.getElementById(`feedback-${questionIndex}`);
+            const options = document.getElementById(`question-${questionIndex}`).querySelectorAll('.option');
+            const selectedOptionElement = Array.from(options).find(opt => opt.classList.contains('selected'));
+
+            if (!selectedOptionElement) {
+                feedbackElement.textContent = 'Kérlek, válassz egy választ!';
+                feedbackElement.className = 'feedback incorrect';
+                return;
+            }
+
+            const correctOptionElement = Array.from(options).find(opt => opt.textContent === question.answer);
+
+            if (userAnswer === question.answer) {
+                feedbackElement.textContent = 'Helyes válasz!';
+                feedbackElement.className = 'feedback correct';
+                selectedOptionElement.classList.add('correct-glow');
+            } else {
+                feedbackElement.textContent = `Hibás válasz. A helyes válasz: ${question.answer}`;
+                feedbackElement.className = 'feedback incorrect';
+                selectedOptionElement.classList.add('wrong-glow');
+                correctOptionElement?.classList.add('correct-glow');
+            }
+            updateScore();
+        }
+
+        function updateScore() {
+            let correctCount = 0;
+            const totalQuestions = quizData.length;
+            for (let i = 0; i < totalQuestions; i++) {
+                if (selectedAnswers[i] && selectedAnswers[i] === quizData[i].answer) {
+                    correctCount++;
+                }
+            }
+            const percentage = totalQuestions > 0 ? ((correctCount / totalQuestions) * 100).toFixed(2) : 0;
+            scoreBox.innerHTML = `Eredmény: ${correctCount} / ${totalQuestions} (${percentage}%)`;
+            scoreBox.style.display = 'block';
+        }
+        
+        function showAllCorrectAnswers() {
+            quizData.forEach((item, index) => {
+                const options = document.getElementById(`question-${index}`).querySelectorAll('.option');
+                options.forEach(option => {
+                    option.classList.remove('correct-glow', 'wrong-glow', 'selected'); 
+                    if (option.textContent === item.answer) {
+                        option.classList.add('correct-glow');
+                    }
+                });
+                document.getElementById(`feedback-${index}`).style.display = 'none';
+            });
+            scoreBox.style.display = 'none';
+        }
+        
+        function resetQuiz() {
+            selectedAnswers = {};
+            scoreBox.style.display = 'none';
+            renderQuiz();
+        }
+
+        // --- Inicializálás ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark-mode';
+            applyTheme(savedTheme);
+            renderQuiz();
+        });
+    </script>
+</body>
+</html>
