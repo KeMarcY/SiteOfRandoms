@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exafe | Metadata Tool</title>
+    
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        /* Light Mode */
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #64748b;
+            --card-bg: #ffffff;
+            --border: #cbd5e1;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            --code-bg: #f8fafc;
+            --danger: #ef4444;
+            --scrollbar-track: #f1f5f9;
+            --scrollbar-thumb: #cbd5e1;
+            --drag-overlay: rgba(37, 99, 235, 0.1);
+        }
+
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f172a;
+                --text: #f1f5f9;
+                --text-secondary: #94a3b8;
+                --card-bg: #1e293b;
+                --border: #334155;
+                --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+                --code-bg: #020617;
+                --scrollbar-track: #0f172a;
+                --scrollbar-thumb: #334155;
+                --drag-overlay: rgba(37, 99, 235, 0.2);
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column; 
+            min-height: 100vh;
+            margin: 0;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            margin: auto; 
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 600px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+            transition: height 0.3s ease;
+        }
+
+        /* Header */
+        header { text-align: center; margin-bottom: 5px; }
+        h1 { margin: 0; font-size: 2rem; letter-spacing: -1px; }
+        p { color: var(--text-secondary); margin-top: 5px; font-size: 0.95rem; line-height: 1.4; }
+
+        /* Hidden Input */
+        #fileInput { display: none; }
+
+        /* Large Upload Box (Initial State) */
+        .upload-box {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-box:hover { border-color: var(--primary); background-color: rgba(37, 99, 235, 0.05); }
+        
+        /* Drag Active State */
+        .upload-box.drag-active, .add-card.drag-active {
+            border-color: var(--primary);
+            background-color: var(--drag-overlay);
+            transform: scale(1.02);
+        }
+
+        /* Gallery Grid */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+        
+        .thumb-card {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            cursor: grab;
+            transition: transform 0.2s, border-color 0.2s;
+            background: var(--code-bg);
+        }
+        .thumb-card:active { cursor: grabbing; }
+
+        .thumb-card.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+            z-index: 2;
+        }
+
+        .thumb-card img {
+            width: 100%; height: 100%; object-fit: cover;
+            pointer-events: none;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 2px; right: 2px;
+            background: rgba(0,0,0,0.6);
+            color: white; border: none;
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            font-size: 10px; line-height: 18px;
+            cursor: pointer; z-index: 3;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .remove-btn:hover { background: var(--danger); }
+
+        /* Mini Add Card (In Gallery) */
+        .add-card {
+            aspect-ratio: 1;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.5rem; /* Emoji size */
+            transition: all 0.2s;
+            background: rgba(0,0,0,0.01);
+        }
+        .add-card:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        /* Metadata Viewer */
+        .meta-panel {
+            background: var(--code-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            display: none; 
+            flex-direction: column;
+            overflow: hidden; 
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 5px;
+        }
+
+        .meta-header { 
+            padding: 10px 15px;
+            font-weight: 600; 
+            font-size: 0.85rem;
+            color: var(--text); 
+            border-bottom: 1px solid var(--border);
+            background: rgba(0,0,0,0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meta-content {
+            padding: 15px; 
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            height: 220px; 
+            overflow-y: auto; 
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) var(--code-bg);
+        }
+
+        /* Custom Scrollbar */
+        .meta-content::-webkit-scrollbar { width: 10px; }
+        .meta-content::-webkit-scrollbar-track { background: transparent; margin: 4px 0; }
+        .meta-content::-webkit-scrollbar-thumb { 
+            background-color: var(--scrollbar-thumb); 
+            border-radius: 20px; 
+            border: 3px solid var(--code-bg); 
+        }
+
+        .meta-row { display: flex; justify-content: space-between; word-break: break-all; line-height: 1.4; }
+        .key { color: var(--text-secondary); margin-right: 15px; min-width: 100px; }
+        
+        .val { color: var(--primary); text-align: right; }
+        .val.danger { color: var(--danger); font-weight: 600; }
+
+        /* Action Area */
+        .action-area {
+            display: none; 
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        button.primary-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button.primary-btn:hover { background-color: var(--primary-hover); }
+        button.primary-btn:active { transform: scale(0.99); }
+        button.primary-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        #status { font-size: 0.85rem; text-align: center; min-height: 1.2em; font-weight: 500; }
+        .success { color: #22c55e; }
+        .processing { color: var(--primary); }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Exafe</h1>
+        <p>Straightforward Metadata Viewer and Cleaner</p>
+    </header>
+
+    <!-- Global hidden input triggered by both boxes -->
+    <input type="file" id="fileInput" multiple accept="image/png, image/jpeg, image/webp">
+
+    <!-- Initial Big Upload Box -->
+    <div id="initialUploadBox" class="upload-box" onclick="triggerUpload()">
+        <span style="font-size: 2rem; margin-bottom: 10px;">➕</span>
+        <span style="font-weight: 500;">Click or Drag Images</span>
+    </div>
+
+    <!-- Gallery Grid -->
+    <div id="gallery" class="gallery">
+        <!-- Images go here -->
+    </div>
+
+    <div class="meta-panel" id="metaPanel">
+        <div class="meta-header">
+            <span id="metaTitle">Metadata Viewer</span>
+        </div>
+        <div class="meta-content" id="metaList">
+            <div style="color: var(--text-secondary); display: flex; align-items: center; justify-content: center; height: 100%;">
+                No image selected
+            </div>
+        </div>
+    </div>
+
+    <div class="action-area" id="actionArea">
+        <div id="status"></div>
+        <button id="downloadBtn" class="primary-btn" disabled>Download Cleaned Image(s)</button>
+    </div>
+</div>
+
+<script>
+    // State Management
+    let filesData = []; 
+    let selectedId = null;
+
+    // Elements
+    const fileInput = document.getElementById('fileInput');
+    const initialUploadBox = document.getElementById('initialUploadBox');
+    const gallery = document.getElementById('gallery');
+    const metaList = document.getElementById('metaList');
+    const metaTitle = document.getElementById('metaTitle');
+    const metaPanel = document.getElementById('metaPanel');
+    const actionArea = document.getElementById('actionArea');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const statusDiv = document.getElementById('status');
+
+    // Sensitive Data Keys (Lowercase for partial matching)
+    const DANGEROUS_KEYS = ['gps', 'latitude', 'longitude', 'altitude', 'serial', 'cameraowner', 'lensid'];
+
+    // Create Mini Add Card Element
+    const miniAddCard = document.createElement('div');
+    miniAddCard.className = 'add-card';
+    miniAddCard.innerHTML = '➕'; // Same emoji as big box
+    miniAddCard.onclick = triggerUpload;
+    miniAddCard.classList.add('static'); 
+
+    // Initialize Sortable
+    Sortable.create(gallery, {
+        animation: 150,
+        filter: '.static',
+        onMove: function (evt) { return evt.related.className.indexOf('static') === -1; },
+        ghostClass: 'sortable-ghost'
+    });
+
+    // --- Event Listeners ---
+    fileInput.addEventListener('change', (e) => processFiles(e.target.files));
+    downloadBtn.addEventListener('click', handleDownload);
+
+    // Setup Drag & Drop for Big Box
+    setupDragDrop(initialUploadBox);
+    // Setup Drag & Drop for Small Box
+    setupDragDrop(miniAddCard);
+
+
+    // --- Functions ---
+
+    function setupDragDrop(element) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            element.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            element.addEventListener(eventName, () => element.classList.add('drag-active'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            element.addEventListener(eventName, () => element.classList.remove('drag-active'), false);
+        });
+
+        element.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            processFiles(files);
+        }
+    }
+
+    function triggerUpload() {
+        fileInput.click();
+    }
+
+    function processFiles(files) {
+        const newFiles = Array.from(files);
+        if (newFiles.length === 0) return;
+
+        let lastId = null;
+
+        newFiles.forEach(file => {
+            if (!file.type.match('image.*')) return;
+            
+            const id = Math.random().toString(36).substr(2, 9);
+            const url = URL.createObjectURL(file);
+
+            filesData.push({ id, file, url });
+            addThumbnailToDOM(id, url);
+            lastId = id;
+        });
+
+        // Clear input to allow re-upload of same file
+        fileInput.value = '';
+        
+        // Auto-select the last uploaded one
+        if (lastId) {
+            selectImage(lastId);
+        }
+        updateInterface();
+    }
+
+    function addThumbnailToDOM(id, url) {
+        const div = document.createElement('div');
+        div.className = 'thumb-card';
+        div.dataset.id = id;
+        div.onclick = (e) => {
+            if(e.target.className !== 'remove-btn' && e.target.parentElement.className !== 'remove-btn') {
+                selectImage(id);
+            }
+        };
+
+        const img = document.createElement('img');
+        img.src = url;
+
+        const rmBtn = document.createElement('button');
+        rmBtn.className = 'remove-btn';
+        rmBtn.innerHTML = '×';
+        rmBtn.onclick = (e) => {
+            e.stopPropagation();
+            removeImage(id);
+        };
+
+        div.appendChild(img);
+        div.appendChild(rmBtn);
+        
+        // Insert before the add card if it exists, otherwise append
+        if (gallery.contains(miniAddCard)) {
+            gallery.insertBefore(div, miniAddCard);
+        } else {
+            gallery.appendChild(div);
+        }
+    }
+
+    function removeImage(id) {
+        const el = document.querySelector(`.thumb-card[data-id="${id}"]`);
+        if (el) el.remove();
+
+        const fileObj = filesData.find(f => f.id === id);
+        if (fileObj) URL.revokeObjectURL(fileObj.url);
+
+        filesData = filesData.filter(f => f.id !== id);
+
+        if (selectedId === id) {
+            metaList.innerHTML = '<div style="color: var(--text-secondary); display: flex; align-items: center; justify-content: center; height: 100%;">Image removed.</div>';
+            metaTitle.innerText = 'Metadata Viewer';
+            selectedId = null;
+        }
+        
+        if (filesData.length === 0) {
+            statusDiv.textContent = '';
+        }
+
+        updateInterface();
+    }
+
+    function selectImage(id) {
+        selectedId = id;
+        document.querySelectorAll('.thumb-card').forEach(el => el.classList.remove('selected'));
+        const el = document.querySelector(`.thumb-card[data-id="${id}"]`);
+        if (el) el.classList.add('selected');
+
+        const fileObj = filesData.find(f => f.id === id);
+        if (!fileObj) return;
+
+        metaTitle.innerText = fileObj.file.name;
+        metaList.innerHTML = '<div style="padding: 10px; color: var(--primary);">Reading...</div>';
+
+        EXIF.getData(fileObj.file, function() {
+            const allTags = EXIF.getAllTags(this);
+            metaList.innerHTML = ''; 
+
+            addMetaRow('File Size', (fileObj.file.size / 1024).toFixed(1) + ' KB');
+            addMetaRow('File Type', fileObj.file.type.split('/')[1].toUpperCase());
+
+            let hasExif = false;
+            for (let tag in allTags) {
+                if (['makerNote', 'UserComment', 'Thumbnail'].some(x => tag.includes(x))) continue; 
+                hasExif = true;
+                let val = allTags[tag];
+                if (typeof val === 'object' && val.length > 20) val = `[Array(${val.length})]`;
+                addMetaRow(tag, val);
+            }
+            
+            if (!hasExif) {
+                const div = document.createElement('div');
+                div.style.color = "var(--text-secondary)";
+                div.style.padding = "10px 0";
+                div.style.textAlign = "center";
+                div.textContent = "No standard EXIF data found.";
+                metaList.appendChild(div);
+            }
+        });
+    }
+
+    function addMetaRow(key, val) {
+        const row = document.createElement('div');
+        row.className = 'meta-row';
+        
+        const isDangerous = DANGEROUS_KEYS.some(danger => key.toLowerCase().includes(danger));
+        const valClass = isDangerous ? 'val danger' : 'val';
+
+        row.innerHTML = `<span class="key">${key}</span><span class="${valClass}">${val}</span>`;
+        metaList.appendChild(row);
+    }
+
+    function updateInterface() {
+        const hasFiles = filesData.length > 0;
+        
+        if (hasFiles) {
+            initialUploadBox.style.display = 'none';
+            if (!gallery.contains(miniAddCard)) {
+                gallery.appendChild(miniAddCard);
+            }
+        } else {
+            initialUploadBox.style.display = 'flex';
+            if (gallery.contains(miniAddCard)) {
+                miniAddCard.remove();
+            }
+        }
+
+        const displayStyle = hasFiles ? 'flex' : 'none';
+        metaPanel.style.display = displayStyle;
+        actionArea.style.display = displayStyle;
+
+        downloadBtn.disabled = !hasFiles;
+        if (!hasFiles) {
+        } else if (filesData.length === 1) {
+            downloadBtn.textContent = 'Download Cleaned Image';
+        } else {
+            downloadBtn.textContent = `Download Cleaned Images (${filesData.length})`;
+        }
+    }
+
+    async function handleDownload() {
+        if (filesData.length === 0) return;
+        
+        downloadBtn.disabled = true;
+        statusDiv.className = 'processing';
+        statusDiv.innerText = "Processing...";
+
+        const d = new Date();
+        const dateStr = d.getFullYear() + 
+                       String(d.getMonth() + 1).padStart(2, '0') + 
+                       String(d.getDate()).padStart(2, '0');
+
+        if (filesData.length === 1) {
+            const item = filesData[0];
+            const ext = item.file.name.split('.').pop() || 'jpg';
+            
+            const randomId = Array.from(crypto.getRandomValues(new Uint8Array(10)))
+                .map(b => b.toString(36).padStart(2, '0')) 
+                .join('').slice(0, 20); 
+
+            const newName = `exafe_${dateStr}_${randomId}.${ext}`;
+
+            const cleanedBlob = await cleanImageToBlob(item.file);
+            const url = URL.createObjectURL(cleanedBlob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = newName;
+            link.click();
+            
+            statusDiv.className = 'success';
+            statusDiv.innerText = "Download Started!";
+            downloadBtn.disabled = false;
+            return;
+        }
+
+        statusDiv.innerText = "Cleaning images...";
+        const zip = new JSZip();
+        
+        const domElements = Array.from(gallery.children).filter(el => el.classList.contains('thumb-card'));
+        
+        const promises = domElements.map(async (el, index) => {
+            const id = el.dataset.id;
+            const item = filesData.find(f => f.id === id);
+            if (!item) return;
+
+            const sequence = String(index + 1).padStart(3, '0');
+            const randomCode = Math.random().toString(36).substr(2, 10);
+            const ext = item.file.name.split('.').pop() || 'jpg';
+            const newName = `exafe_${dateStr}_${sequence}_${randomCode}.${ext}`;
+
+            const cleanedBlob = await cleanImageToBlob(item.file);
+            zip.file(newName, cleanedBlob);
+        });
+
+        await Promise.all(promises);
+
+        statusDiv.innerText = "Zipping...";
+        
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `exafe_batch_${dateStr}.zip`;
+            link.click();
+            
+            statusDiv.className = 'success';
+            statusDiv.innerText = "Download Started!";
+            downloadBtn.disabled = false;
+        });
+    }
+
+    function cleanImageToBlob(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    canvas.toBlob(blob => resolve(blob), file.type, 0.92);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+</script>
+
+</body>
+</html>
