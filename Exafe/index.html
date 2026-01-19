@@ -4,15 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exafe | Metadata Tool</title>
+    <title>Exafe | Universal Image Tool</title>
 
     <!-- Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Metadata Reader (Supports HEIC, PNG, JPG, TIFF, AVIF) -->
+    <script src="https://cdn.jsdelivr.net/npm/exifr/dist/full.umd.js"></script>
+    <!-- HEIC Converter -->
+    <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 
     <style>
-        /* Light Mode */
         :root {
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
@@ -29,7 +31,6 @@
             --drag-overlay: rgba(37, 99, 235, 0.1);
         }
 
-        /* Dark Mode */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg: #0f172a;
@@ -70,10 +71,8 @@
             flex-direction: column;
             gap: 15px;
             position: relative;
-            transition: height 0.3s ease;
         }
 
-        /* Header */
         header {
             text-align: center;
             margin-bottom: 5px;
@@ -92,12 +91,10 @@
             line-height: 1.4;
         }
 
-        /* Hidden Input */
         #fileInput {
             display: none;
         }
 
-        /* Large Upload Box (Initial State) */
         .upload-box {
             border: 2px dashed var(--border);
             border-radius: 12px;
@@ -117,7 +114,6 @@
             background-color: rgba(37, 99, 235, 0.05);
         }
 
-        /* Drag Active State */
         .upload-box.drag-active,
         .add-card.drag-active {
             border-color: var(--primary);
@@ -125,7 +121,6 @@
             transform: scale(1.02);
         }
 
-        /* Gallery Grid */
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -160,6 +155,20 @@
             pointer-events: none;
         }
 
+        .fmt-badge {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 9px;
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-weight: bold;
+            pointer-events: none;
+            text-transform: uppercase;
+        }
+
         .remove-btn {
             position: absolute;
             top: 2px;
@@ -183,7 +192,6 @@
             background: var(--danger);
         }
 
-        /* Mini Add Card (In Gallery) */
         .add-card {
             aspect-ratio: 1;
             border: 2px dashed var(--border);
@@ -194,7 +202,6 @@
             cursor: pointer;
             color: var(--text-secondary);
             font-size: 1.5rem;
-            /* Emoji size */
             transition: all 0.2s;
             background: rgba(0, 0, 0, 0.01);
         }
@@ -204,7 +211,6 @@
             background: rgba(37, 99, 235, 0.05);
         }
 
-        /* Metadata Viewer */
         .meta-panel {
             background: var(--code-bg);
             border-radius: 10px;
@@ -242,7 +248,6 @@
             scrollbar-color: var(--scrollbar-thumb) var(--code-bg);
         }
 
-        /* Custom Scrollbar */
         .meta-content::-webkit-scrollbar {
             width: 10px;
         }
@@ -281,7 +286,6 @@
             font-weight: 600;
         }
 
-        /* Action Area */
         .action-area {
             display: none;
             flex-direction: column;
@@ -338,22 +342,18 @@
     <div class="container">
         <header>
             <h1>Exafe</h1>
-            <p>Straightforward & Local Metadata Viewer and Cleaner</p>
+            <p>Metadata Viewer and Cleaner (HEIC, JPG, PNG, GIF, WEBP)</p>
         </header>
 
-        <!-- Global hidden input triggered by both boxes -->
-        <input type="file" id="fileInput" multiple accept="image/png, image/jpeg, image/webp">
+        <input type="file" id="fileInput" multiple
+            accept="image/png, image/jpeg, image/webp, image/heic, image/gif, image/bmp, image/avif, .heic, .heif">
 
-        <!-- Initial Big Upload Box -->
         <div id="initialUploadBox" class="upload-box" onclick="triggerUpload()">
             <span style="font-size: 2rem; margin-bottom: 10px;">➕</span>
             <span style="font-weight: 500;">Click or Drag Images</span>
         </div>
 
-        <!-- Gallery Grid -->
-        <div id="gallery" class="gallery">
-            <!-- Images go here -->
-        </div>
+        <div id="gallery" class="gallery"></div>
 
         <div class="meta-panel" id="metaPanel">
             <div class="meta-header">
@@ -389,106 +389,107 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const statusDiv = document.getElementById('status');
 
-        // Sensitive Data Keys (Lowercase for partial matching)
-        const DANGEROUS_KEYS = ['gps', 'latitude', 'longitude', 'altitude', 'serial', 'cameraowner', 'lensid'];
+        const DANGEROUS_KEYS = ['gps', 'latitude', 'longitude', 'altitude', 'serial', 'cameraowner', 'lensid', 'location'];
 
-        // Create Mini Add Card Element
         const miniAddCard = document.createElement('div');
-        miniAddCard.className = 'add-card';
-        miniAddCard.innerHTML = '➕'; // Same emoji as big box
+        miniAddCard.className = 'add-card static';
+        miniAddCard.innerHTML = '➕';
         miniAddCard.onclick = triggerUpload;
-        miniAddCard.classList.add('static');
 
-        // Initialize Sortable
         Sortable.create(gallery, {
             animation: 150,
             filter: '.static',
-            onMove: function (evt) { return evt.related.className.indexOf('static') === -1; },
-            ghostClass: 'sortable-ghost'
+            onMove: (evt) => evt.related.className.indexOf('static') === -1
         });
 
         // --- Event Listeners ---
         fileInput.addEventListener('change', (e) => processFiles(e.target.files));
         downloadBtn.addEventListener('click', handleDownload);
-
-        // Setup Drag & Drop for Big Box
         setupDragDrop(initialUploadBox);
-        // Setup Drag & Drop for Small Box
         setupDragDrop(miniAddCard);
 
-
-        // --- Functions ---
-
         function setupDragDrop(element) {
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                element.addEventListener(eventName, preventDefaults, false);
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eName => {
+                element.addEventListener(eName, (e) => { e.preventDefault(); e.stopPropagation(); });
             });
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                element.addEventListener(eventName, () => element.classList.add('drag-active'), false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                element.addEventListener(eventName, () => element.classList.remove('drag-active'), false);
-            });
-
-            element.addEventListener('drop', handleDrop, false);
-
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                processFiles(files);
-            }
+            ['dragenter', 'dragover'].forEach(eName => element.addEventListener(eName, () => element.classList.add('drag-active')));
+            ['dragleave', 'drop'].forEach(eName => element.addEventListener(eName, () => element.classList.remove('drag-active')));
+            element.addEventListener('drop', (e) => processFiles(e.dataTransfer.files));
         }
 
-        function triggerUpload() {
-            fileInput.click();
-        }
+        function triggerUpload() { fileInput.click(); }
 
-        function processFiles(files) {
+        async function processFiles(files) {
             const newFiles = Array.from(files);
             if (newFiles.length === 0) return;
 
+            const hasHeic = newFiles.some(f => f.name.toLowerCase().endsWith('.heic'));
+            if (hasHeic) statusDiv.innerText = "Converting HEIC files...";
+
             let lastId = null;
 
-            newFiles.forEach(file => {
-                if (!file.type.match('image.*')) return;
+            for (const file of newFiles) {
+                // Expanded file type check
+                const name = file.name.toLowerCase();
+                const isHeic = name.endsWith('.heic') || file.type === 'image/heic';
+                const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|bmp|avif|heif)$/.test(name);
+
+                if (!isImage && !isHeic) continue;
 
                 const id = Math.random().toString(36).substr(2, 9);
-                const url = URL.createObjectURL(file);
+                let displayUrl = '';
+                let displayFile = file;
 
-                filesData.push({ id, file, url });
-                addThumbnailToDOM(id, url);
-                lastId = id;
-            });
+                try {
+                    if (isHeic) {
+                        const convertedBlob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.8 });
+                        displayFile = convertedBlob;
+                        displayUrl = URL.createObjectURL(convertedBlob);
+                    } else {
+                        displayUrl = URL.createObjectURL(file);
+                    }
 
-            // Clear input to allow re-upload of same file
-            fileInput.value = '';
+                    filesData.push({ id, originalFile: file, displayFile: displayFile, url: displayUrl, isHeic });
 
-            // Auto-select the last uploaded one
-            if (lastId) {
-                selectImage(lastId);
+                    let label = null;
+                    if (isHeic) label = 'HEIC';
+                    else if (name.endsWith('.gif')) label = 'GIF';
+                    else if (name.endsWith('.webp')) label = 'WEBP';
+                    else if (name.endsWith('.bmp')) label = 'BMP';
+                    else if (name.endsWith('.avif')) label = 'AVIF';
+
+                    addThumbnailToDOM(id, displayUrl, label);
+                    lastId = id;
+
+                } catch (e) {
+                    console.error("Error processing file:", file.name, e);
+                }
             }
+
+            fileInput.value = '';
+            statusDiv.innerText = "";
+            if (lastId) selectImage(lastId);
             updateInterface();
         }
 
-        function addThumbnailToDOM(id, url) {
+        function addThumbnailToDOM(id, url, label) {
             const div = document.createElement('div');
             div.className = 'thumb-card';
             div.dataset.id = id;
             div.onclick = (e) => {
-                if (e.target.className !== 'remove-btn' && e.target.parentElement.className !== 'remove-btn') {
-                    selectImage(id);
-                }
+                if (!e.target.closest('.remove-btn')) selectImage(id);
             };
 
             const img = document.createElement('img');
             img.src = url;
+            div.appendChild(img);
+
+            if (label) {
+                const badge = document.createElement('div');
+                badge.className = 'fmt-badge';
+                badge.innerText = label;
+                div.appendChild(badge);
+            }
 
             const rmBtn = document.createElement('button');
             rmBtn.className = 'remove-btn';
@@ -497,16 +498,10 @@
                 e.stopPropagation();
                 removeImage(id);
             };
-
-            div.appendChild(img);
             div.appendChild(rmBtn);
 
-            // Insert before the add card if it exists, otherwise append
-            if (gallery.contains(miniAddCard)) {
-                gallery.insertBefore(div, miniAddCard);
-            } else {
-                gallery.appendChild(div);
-            }
+            if (gallery.contains(miniAddCard)) gallery.insertBefore(div, miniAddCard);
+            else gallery.appendChild(div);
         }
 
         function removeImage(id) {
@@ -523,90 +518,78 @@
                 metaTitle.innerText = 'Metadata Viewer';
                 selectedId = null;
             }
-
-            if (filesData.length === 0) {
-                statusDiv.textContent = '';
-            }
-
+            if (filesData.length === 0) statusDiv.textContent = '';
             updateInterface();
         }
 
-        function selectImage(id) {
+        async function selectImage(id) {
             selectedId = id;
             document.querySelectorAll('.thumb-card').forEach(el => el.classList.remove('selected'));
             const el = document.querySelector(`.thumb-card[data-id="${id}"]`);
             if (el) el.classList.add('selected');
 
-            const fileObj = filesData.find(f => f.id === id);
-            if (!fileObj) return;
+            const item = filesData.find(f => f.id === id);
+            if (!item) return;
 
-            metaTitle.innerText = fileObj.file.name;
+            metaTitle.innerText = item.originalFile.name;
             metaList.innerHTML = '<div style="padding: 10px; color: var(--primary);">Reading...</div>';
 
-            EXIF.getData(fileObj.file, function () {
-                const allTags = EXIF.getAllTags(this);
+            try {
+                const output = await exifr.parse(item.originalFile, {
+                    tiff: true,
+                    exif: true,
+                    gps: true,
+                });
+
                 metaList.innerHTML = '';
+                addMetaRow('File Type', item.isHeic ? 'HEIC (Apple)' : item.originalFile.name.split('.').pop().toUpperCase());
+                addMetaRow('Size', (item.originalFile.size / 1024 / 1024).toFixed(2) + ' MB');
 
-                addMetaRow('File Size', (fileObj.file.size / 1024).toFixed(1) + ' KB');
-                addMetaRow('File Type', fileObj.file.type.split('/')[1].toUpperCase());
-
-                let hasExif = false;
-                for (let tag in allTags) {
-                    if (['makerNote', 'UserComment', 'Thumbnail'].some(x => tag.includes(x))) continue;
-                    hasExif = true;
-                    let val = allTags[tag];
-                    if (typeof val === 'object' && val.length > 20) val = `[Array(${val.length})]`;
-                    addMetaRow(tag, val);
-                }
-
-                if (!hasExif) {
+                if (output) {
+                    for (let [key, val] of Object.entries(output)) {
+                        if (val instanceof Uint8Array || (typeof val === 'object' && val !== null && !val.toString().match(/Date|Array/))) continue;
+                        if (val instanceof Date) val = val.toLocaleString();
+                        addMetaRow(key, val);
+                    }
+                } else {
                     const div = document.createElement('div');
-                    div.style.color = "var(--text-secondary)";
-                    div.style.padding = "10px 0";
+                    div.style.padding = "10px";
                     div.style.textAlign = "center";
-                    div.textContent = "No standard EXIF data found.";
+                    div.style.color = "var(--text-secondary)";
+                    div.textContent = "No hidden metadata found (Image is likely clean).";
                     metaList.appendChild(div);
                 }
-            });
+            } catch (err) {
+                console.error(err);
+                metaList.innerHTML = '<div style="padding:10px; color:var(--danger)">Error reading metadata.</div>';
+            }
         }
 
         function addMetaRow(key, val) {
             const row = document.createElement('div');
             row.className = 'meta-row';
-
             const isDangerous = DANGEROUS_KEYS.some(danger => key.toLowerCase().includes(danger));
             const valClass = isDangerous ? 'val danger' : 'val';
 
-            row.innerHTML = `<span class="key">${key}</span><span class="${valClass}">${val}</span>`;
+            let displayVal = String(val);
+            if (displayVal.length > 50) displayVal = displayVal.substring(0, 50) + '...';
+
+            row.innerHTML = `<span class="key">${key}</span><span class="${valClass}">${displayVal}</span>`;
             metaList.appendChild(row);
         }
 
         function updateInterface() {
             const hasFiles = filesData.length > 0;
-
-            if (hasFiles) {
-                initialUploadBox.style.display = 'none';
-                if (!gallery.contains(miniAddCard)) {
-                    gallery.appendChild(miniAddCard);
-                }
-            } else {
-                initialUploadBox.style.display = 'flex';
-                if (gallery.contains(miniAddCard)) {
-                    miniAddCard.remove();
-                }
-            }
+            initialUploadBox.style.display = hasFiles ? 'none' : 'flex';
+            if (hasFiles && !gallery.contains(miniAddCard)) gallery.appendChild(miniAddCard);
+            else if (!hasFiles) miniAddCard.remove();
 
             const displayStyle = hasFiles ? 'flex' : 'none';
             metaPanel.style.display = displayStyle;
             actionArea.style.display = displayStyle;
 
             downloadBtn.disabled = !hasFiles;
-            if (!hasFiles) {
-            } else if (filesData.length === 1) {
-                downloadBtn.textContent = 'Download Cleaned Image';
-            } else {
-                downloadBtn.textContent = `Download Cleaned Images (${filesData.length})`;
-            }
+            downloadBtn.textContent = hasFiles ? `Download Cleaned Images (${filesData.length})` : 'Download Cleaned Image';
         }
 
         async function handleDownload() {
@@ -614,26 +597,23 @@
 
             downloadBtn.disabled = true;
             statusDiv.className = 'processing';
-            statusDiv.innerText = "Processing...";
+            statusDiv.innerText = "Cleaning images...";
 
             const d = new Date();
-            const dateStr = d.getFullYear() +
-                String(d.getMonth() + 1).padStart(2, '0') +
-                String(d.getDate()).padStart(2, '0');
+            const dateStr = d.toISOString().split('T')[0].replace(/-/g, '');
 
+            // 1. Generate one random code for the entire batch (or single file)
+            const batchRandomCode = Math.random().toString(36).substr(2, 6);
+
+            // Single File Download
             if (filesData.length === 1) {
                 const item = filesData[0];
-                const ext = item.file.name.split('.').pop() || 'jpg';
+                const ext = item.isHeic ? 'jpg' : (item.originalFile.name.split('.').pop() || 'jpg');
+                // Naming pattern: exafe_DATE_CODE.ext (no number for single file)
+                const newName = `exafe_${dateStr}_${batchRandomCode}.${ext}`;
 
-                const randomId = Array.from(crypto.getRandomValues(new Uint8Array(10)))
-                    .map(b => b.toString(36).padStart(2, '0'))
-                    .join('').slice(0, 20);
-
-                const newName = `exafe_${dateStr}_${randomId}.${ext}`;
-
-                const cleanedBlob = await cleanImageToBlob(item.file);
+                const cleanedBlob = await cleanImageToBlob(item);
                 const url = URL.createObjectURL(cleanedBlob);
-
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = newName;
@@ -645,43 +625,45 @@
                 return;
             }
 
-            statusDiv.innerText = "Cleaning images...";
+            // Batch Download (Zip)
             const zip = new JSZip();
 
+            // Get current DOM order to respect sorting
             const domElements = Array.from(gallery.children).filter(el => el.classList.contains('thumb-card'));
 
-            const promises = domElements.map(async (el, index) => {
-                const id = el.dataset.id;
+            for (let i = 0; i < domElements.length; i++) {
+                const id = domElements[i].dataset.id;
                 const item = filesData.find(f => f.id === id);
-                if (!item) return;
+                if (!item) continue;
 
-                const sequence = String(index + 1).padStart(3, '0');
-                const randomCode = Math.random().toString(36).substr(2, 10);
-                const ext = item.file.name.split('.').pop() || 'jpg';
-                const newName = `exafe_${dateStr}_${sequence}_${randomCode}.${ext}`;
+                statusDiv.innerText = `Cleaning ${i + 1}/${domElements.length}...`;
 
-                const cleanedBlob = await cleanImageToBlob(item.file);
+                const ext = item.isHeic ? 'jpg' : (item.originalFile.name.split('.').pop() || 'jpg');
+
+                // Naming pattern: exafe_DATE_CODE_NUMBER.ext
+                // CODE is shared, NUMBER is sequential based on sort order
+                const newName = `exafe_${dateStr}_${batchRandomCode}_${i + 1}.${ext}`;
+
+                const cleanedBlob = await cleanImageToBlob(item);
                 zip.file(newName, cleanedBlob);
-            });
-
-            await Promise.all(promises);
+            }
 
             statusDiv.innerText = "Zipping...";
+            const content = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `exafe_batch_${dateStr}.zip`;
+            link.click();
 
-            zip.generateAsync({ type: "blob" }).then(function (content) {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(content);
-                link.download = `exafe_batch_${dateStr}.zip`;
-                link.click();
-
-                statusDiv.className = 'success';
-                statusDiv.innerText = "Download Started!";
-                downloadBtn.disabled = false;
-            });
+            statusDiv.className = 'success';
+            statusDiv.innerText = "Done!";
+            downloadBtn.disabled = false;
         }
 
-        function cleanImageToBlob(file) {
+        function cleanImageToBlob(item) {
             return new Promise((resolve) => {
+                const fileToDraw = item.displayFile;
+
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const img = new Image();
@@ -691,15 +673,14 @@
                         canvas.height = img.height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0);
-                        canvas.toBlob(blob => resolve(blob), file.type, 0.92);
+                        canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.92);
                     };
                     img.src = e.target.result;
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(fileToDraw);
             });
         }
     </script>
-
 </body>
 
 </html>
