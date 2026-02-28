@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exafe | Universal Image Tool</title>
+    <title>Exafe | Universal Media Tool</title>
 
     <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
@@ -342,15 +342,15 @@
     <div class="container">
         <header>
             <h1>Exafe</h1>
-            <p>Metadata Viewer and Cleaner (HEIC, JPG, PNG, GIF, WEBP)</p>
+            <p>Metadata Viewer and Cleaner (HEIC, JPG, PNG, GIF, WEBP, MP4, MOV, WEBM)</p>
         </header>
 
         <input type="file" id="fileInput" multiple
-            accept="image/png, image/jpeg, image/webp, image/heic, image/gif, image/bmp, image/avif, .heic, .heif">
+            accept="image/png, image/jpeg, image/webp, image/heic, image/gif, image/bmp, image/avif, .heic, .heif, video/mp4, video/quicktime, video/webm, .mp4, .mov, .webm">
 
         <div id="initialUploadBox" class="upload-box" onclick="triggerUpload()">
             <span style="font-size: 2rem; margin-bottom: 10px;">➕</span>
-            <span style="font-weight: 500;">Click or Drag Images</span>
+            <span style="font-weight: 500;">Click or Drag Media (Images & Videos)</span>
         </div>
 
         <div id="gallery" class="gallery"></div>
@@ -369,7 +369,7 @@
 
         <div class="action-area" id="actionArea">
             <div id="status"></div>
-            <button id="downloadBtn" class="primary-btn" disabled>Download Cleaned Image(s)</button>
+            <button id="downloadBtn" class="primary-btn" disabled>Download Media</button>
         </div>
     </div>
 
@@ -433,8 +433,9 @@
                 const name = file.name.toLowerCase();
                 const isHeic = name.endsWith('.heic') || file.type === 'image/heic';
                 const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif|bmp|avif|heif)$/.test(name);
+                const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|webm)$/.test(name);
 
-                if (!isImage && !isHeic) continue;
+                if (!isImage && !isHeic && !isVideo) continue;
 
                 const id = Math.random().toString(36).substr(2, 9);
                 let displayUrl = '';
@@ -449,7 +450,7 @@
                         displayUrl = URL.createObjectURL(file);
                     }
 
-                    filesData.push({ id, originalFile: file, displayFile: displayFile, url: displayUrl, isHeic });
+                    filesData.push({ id, originalFile: file, displayFile: displayFile, url: displayUrl, isHeic, isVideo });
 
                     let label = null;
                     if (isHeic) label = 'HEIC';
@@ -457,8 +458,9 @@
                     else if (name.endsWith('.webp')) label = 'WEBP';
                     else if (name.endsWith('.bmp')) label = 'BMP';
                     else if (name.endsWith('.avif')) label = 'AVIF';
+                    else if (isVideo) label = name.split('.').pop().toUpperCase();
 
-                    addThumbnailToDOM(id, displayUrl, label);
+                    addThumbnailToDOM(id, displayUrl, label, isVideo);
                     lastId = id;
 
                 } catch (e) {
@@ -472,7 +474,7 @@
             updateInterface();
         }
 
-        function addThumbnailToDOM(id, url, label) {
+        function addThumbnailToDOM(id, url, label, isVideo) {
             const div = document.createElement('div');
             div.className = 'thumb-card';
             div.dataset.id = id;
@@ -480,9 +482,21 @@
                 if (!e.target.closest('.remove-btn')) selectImage(id);
             };
 
-            const img = document.createElement('img');
-            img.src = url;
-            div.appendChild(img);
+            if (isVideo) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.objectFit = 'cover';
+                video.style.pointerEvents = 'none';
+                video.muted = true;
+                video.onloadeddata = () => { video.currentTime = video.duration > 1 ? 1 : 0; };
+                div.appendChild(video);
+            } else {
+                const img = document.createElement('img');
+                img.src = url;
+                div.appendChild(img);
+            }
 
             if (label) {
                 const badge = document.createElement('div');
@@ -535,15 +549,40 @@
             metaList.innerHTML = '<div style="padding: 10px; color: var(--primary);">Reading...</div>';
 
             try {
-                const output = await exifr.parse(item.originalFile, {
-                    tiff: true,
-                    exif: true,
-                    gps: true,
-                });
+                let output = null;
+                try {
+                    output = await exifr.parse(item.originalFile, {
+                        tiff: true,
+                        exif: true,
+                        gps: true,
+                    });
+                } catch(err) {
+                    console.log('Exifr parse skipped/failed:', err);
+                }
 
                 metaList.innerHTML = '';
                 addMetaRow('File Type', item.isHeic ? 'HEIC (Apple)' : item.originalFile.name.split('.').pop().toUpperCase());
                 addMetaRow('Size', (item.originalFile.size / 1024 / 1024).toFixed(2) + ' MB');
+
+                if (item.isVideo) {
+                    const vid = document.createElement('video');
+                    vid.src = item.url;
+                    await new Promise(resolve => {
+                        vid.onloadedmetadata = () => {
+                            addMetaRow('Duration', vid.duration.toFixed(2) + 's');
+                            addMetaRow('Resolution', vid.videoWidth + 'x' + vid.videoHeight);
+                            resolve();
+                        };
+                        vid.onerror = resolve;
+                    });
+                    
+                    const notice = document.createElement('div');
+                    notice.style.padding = "10px";
+                    notice.style.textAlign = "center";
+                    notice.style.color = "var(--text-secondary)";
+                    notice.textContent = "Videos remain in their original format. Cleaning requires a backend/FFMPEG.";
+                    metaList.appendChild(notice);
+                }
 
                 if (output) {
                     for (let [key, val] of Object.entries(output)) {
@@ -589,7 +628,7 @@
             actionArea.style.display = displayStyle;
 
             downloadBtn.disabled = !hasFiles;
-            downloadBtn.textContent = hasFiles ? `Download Cleaned Images (${filesData.length})` : 'Download Cleaned Image';
+            downloadBtn.textContent = hasFiles ? `Download Media (${filesData.length})` : 'Download Media';
         }
 
         async function handleDownload() {
@@ -597,7 +636,7 @@
 
             downloadBtn.disabled = true;
             statusDiv.className = 'processing';
-            statusDiv.innerText = "Cleaning images...";
+            statusDiv.innerText = "Processing files...";
 
             const d = new Date();
             const dateStr = d.toISOString().split('T')[0].replace(/-/g, '');
@@ -636,7 +675,7 @@
                 const item = filesData.find(f => f.id === id);
                 if (!item) continue;
 
-                statusDiv.innerText = `Cleaning ${i + 1}/${domElements.length}...`;
+                statusDiv.innerText = `Processing ${i + 1}/${domElements.length}...`;
 
                 const ext = item.isHeic ? 'jpg' : (item.originalFile.name.split('.').pop() || 'jpg');
 
@@ -662,6 +701,13 @@
 
         function cleanImageToBlob(item) {
             return new Promise((resolve) => {
+                if (item.isVideo) {
+                    // Fast client-side video metadata removal is complex without FFmpeg.
+                    // Returning the original video Blob so it plays/downloads correctly.
+                    resolve(new Blob([item.originalFile], { type: item.originalFile.type }));
+                    return;
+                }
+
                 const fileToDraw = item.displayFile;
 
                 const reader = new FileReader();
