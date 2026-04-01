@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anison</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="view-library">
+    <div class="app-container wide" id="app-container">
+        <header class="app-header">
+            <h1>Anison <span class="subtitle" id="app-subtitle">Library</span></h1>
+            <div class="header-actions">
+                <button class="btn btn-secondary" id="toggle-view-btn">Open Editor</button>
+                <div class="editor-actions" style="display: none; align-items: center; gap: 1rem;">
+                    <button class="btn btn-danger" id="clear-local-btn">Clear Local Storage</button>
+                    <input type="file" id="import-json" accept=".json" class="hidden-file-input">
+                    <button class="btn btn-secondary" onclick="document.getElementById('import-json').click()">Import JSON</button>
+                    <button class="btn btn-secondary" id="export-btn">Export JSON</button>
+                    <button class="btn btn-primary" id="add-btn">+ Add Item</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <label for="sort-select">Sort By:</label>
+                <select id="sort-select">
+                    <option value="order-desc">Order (Desc/Newest)</option>
+                    <option value="order-asc">Order (Asc/Oldest)</option>
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="rating-desc">Rating (Highest First)</option>
+                    <option value="rating-asc">Rating (Lowest First)</option>
+                </select>
+            </div>
+            <div class="toolbar-group">
+                <label>Show Statuses:</label>
+                <div class="status-toggles" id="status-toggles">
+                    <label class="toggle-label"><input type="checkbox" value="watching" checked> Watching</label>
+                    <label class="toggle-label"><input type="checkbox" value="completed" checked> Completed</label>
+                    <label class="toggle-label"><input type="checkbox" value="on-hold" checked> On-Hold</label>
+                    <label class="toggle-label"><input type="checkbox" value="dropped" checked> Dropped</label>
+                    <label class="toggle-label"><input type="checkbox" value="planned" checked> Planned</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Library View Content -->
+        <main class="library-layout" id="library-view">
+            <section class="library-column series-column">
+                <h2 class="column-title">Series</h2>
+                <div id="library-series-content"></div>
+            </section>
+            <section class="library-column movies-column">
+                <h2 class="column-title">Movies</h2>
+                <div id="library-movies-content"></div>
+            </section>
+        </main>
+
+        <!-- Editor View Content -->
+        <div id="editor-view" style="display: none;">
+            <div class="tab-bar">
+                <button class="tab-btn active" data-tab="series">Series <span class="tab-count" id="tab-count-series">0</span></button>
+                <button class="tab-btn" data-tab="movies">Movies <span class="tab-count" id="tab-count-movies">0</span></button>
+                <button class="tab-btn" data-tab="planned-series">Planned Series <span class="tab-count" id="tab-count-planned-series">0</span></button>
+                <button class="tab-btn" data-tab="planned-movies">Planned Movies <span class="tab-count" id="tab-count-planned-movies">0</span></button>
+            </div>
+
+            <main class="tab-content-area">
+                <section class="tab-panel active" id="panel-series">
+                    <div class="status-divider divider-watching">Watching <span class="divider-count" id="count-series-watching">0</span></div>
+                    <div class="sortable-list" id="list-series-watching" data-list="seriesListActive" data-status="watching"></div>
+                    <div class="status-divider divider-completed">Completed <span class="divider-count" id="count-series-completed">0</span></div>
+                    <div class="sortable-list" id="list-series-completed" data-list="seriesListActive" data-status="completed"></div>
+                    <div class="status-divider divider-on-hold">On-Hold <span class="divider-count" id="count-series-on-hold">0</span></div>
+                    <div class="sortable-list" id="list-series-on-hold" data-list="seriesListActive" data-status="on-hold"></div>
+                    <div class="status-divider divider-dropped">Dropped <span class="divider-count" id="count-series-dropped">0</span></div>
+                    <div class="sortable-list" id="list-series-dropped" data-list="seriesListActive" data-status="dropped"></div>
+                </section>
+
+                <section class="tab-panel" id="panel-movies">
+                    <div class="status-divider divider-watching">Watching <span class="divider-count" id="count-movies-watching">0</span></div>
+                    <div class="sortable-list" id="list-movies-watching" data-list="movieListActive" data-status="watching"></div>
+                    <div class="status-divider divider-completed">Completed <span class="divider-count" id="count-movies-completed">0</span></div>
+                    <div class="sortable-list" id="list-movies-completed" data-list="movieListActive" data-status="completed"></div>
+                    <div class="status-divider divider-on-hold">On-Hold <span class="divider-count" id="count-movies-on-hold">0</span></div>
+                    <div class="sortable-list" id="list-movies-on-hold" data-list="movieListActive" data-status="on-hold"></div>
+                    <div class="status-divider divider-dropped">Dropped <span class="divider-count" id="count-movies-dropped">0</span></div>
+                    <div class="sortable-list" id="list-movies-dropped" data-list="movieListActive" data-status="dropped"></div>
+                </section>
+
+                <section class="tab-panel" id="panel-planned-series">
+                    <div class="status-divider divider-planned">Planned <span class="divider-count" id="count-planned-series">0</span></div>
+                    <div class="sortable-list" id="list-planned-series" data-list="seriesListPlanned" data-status="planned"></div>
+                </section>
+
+                <section class="tab-panel" id="panel-planned-movies">
+                    <div class="status-divider divider-planned">Planned <span class="divider-count" id="count-planned-movies">0</span></div>
+                    <div class="sortable-list" id="list-planned-movies" data-list="movieListPlanned" data-status="planned"></div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="editor-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Edit Item</h2>
+                <button class="icon-btn close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="item-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-title">Title</label>
+                            <input type="text" id="item-title" required placeholder="Anime Title">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-image">Image URL</label>
+                            <input type="url" id="item-image" placeholder="https://example.com/image.jpg">
+                        </div>
+                    </div>
+                    <div class="form-row split-2">
+                        <div class="form-group">
+                            <label for="item-group">Group</label>
+                            <div style="position: relative; display: flex; width: 100%;">
+                                <input type="text" id="item-group" placeholder="e.g. Fate Series" autocomplete="off" style="width: 100%; box-sizing: border-box;">
+                                <div id="group-suggestions" class="tag-suggestions-list"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Tags</label>
+                            <div class="tag-editor">
+                                <div id="tags-container" class="tags-container"></div>
+                                <div class="tag-input-wrapper">
+                                    <input type="text" id="tag-input" placeholder="Add tag & press Enter" autocomplete="off">
+                                    <div id="tag-suggestions" class="tag-suggestions-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Status</label>
+                            <div class="status-selector" id="status-selector">
+                                <button type="button" class="status-btn" data-value="watching">Watching</button>
+                                <button type="button" class="status-btn" data-value="completed">Completed</button>
+                                <button type="button" class="status-btn" data-value="on-hold">On-Hold</button>
+                                <button type="button" class="status-btn" data-value="dropped">Dropped</button>
+                                <button type="button" class="status-btn" data-value="planned">Planned</button>
+                                <button type="button" class="waiting-btn" id="item-waiting" title="Waiting for next season">⏱️</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Overall Rating</label>
+                            <div class="rating-selector overall-rating" id="overall-rating-selector">
+                                <button type="button" class="rating-emoji" data-value="💀">💀</button>
+                                <button type="button" class="rating-emoji" data-value="😕">😕</button>
+                                <button type="button" class="rating-emoji" data-value="🙂">🙂</button>
+                                <button type="button" class="rating-emoji" data-value="😀">😀</button>
+                                <button type="button" class="rating-emoji" data-value="😁">😁</button>
+                                <button type="button" class="rating-emoji" data-value="😍">😍</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row split-2">
+                        <div class="form-group">
+                            <label>Art</label>
+                            <div class="rating-selector bonus-rating" id="rating-art">
+                                <button type="button" class="rating-emoji" data-value="🙁">🙁</button>
+                                <button type="button" class="rating-emoji" data-value="😐">😐</button>
+                                <button type="button" class="rating-emoji" data-value="😊">😊</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Story</label>
+                            <div class="rating-selector bonus-rating" id="rating-story">
+                                <button type="button" class="rating-emoji" data-value="🙁">🙁</button>
+                                <button type="button" class="rating-emoji" data-value="😐">😐</button>
+                                <button type="button" class="rating-emoji" data-value="😊">😊</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row split-2">
+                        <div class="form-group">
+                            <label>Characters</label>
+                            <div class="rating-selector bonus-rating" id="rating-characters">
+                                <button type="button" class="rating-emoji" data-value="🙁">🙁</button>
+                                <button type="button" class="rating-emoji" data-value="😐">😐</button>
+                                <button type="button" class="rating-emoji" data-value="😊">😊</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Music</label>
+                            <div class="rating-selector bonus-rating" id="rating-music">
+                                <button type="button" class="rating-emoji" data-value="🙁">🙁</button>
+                                <button type="button" class="rating-emoji" data-value="😐">😐</button>
+                                <button type="button" class="rating-emoji" data-value="😊">😊</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row split-2" id="series-fields">
+                        <div class="form-group">
+                            <label for="item-seasons">Seasons</label>
+                            <input type="number" id="item-seasons" min="0" placeholder="e.g. 1">
+                        </div>
+                        <div class="form-group">
+                            <label for="item-episodes">Episodes</label>
+                            <input type="number" id="item-episodes" min="0" placeholder="e.g. 24">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="item-note">Note</label>
+                            <textarea id="item-note" rows="3" placeholder="Add your notes here..."></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label class="nsfw-checkbox">
+                            <input type="checkbox" id="item-nsfw">
+                            <span class="nsfw-custom-box">
+                                <span class="nsfw-text">NSFW Content</span>
+                            </span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer modal-footer-split">
+                <div>
+                    <button type="button" class="btn btn-danger" id="delete-item-btn">Delete</button>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary close-modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-item-btn">Save Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Library Info Modal -->
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal-content info-modal-content">
+            <div class="modal-body" id="info-body">
+                <!-- Data populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
