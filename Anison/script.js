@@ -781,7 +781,6 @@ function exportJson() {
         if (item.episodes !== undefined) out.episodes = item.episodes;
         if (item.note !== undefined) out.note = item.note;
         if (item.is_nsfw !== undefined) out.is_nsfw = item.is_nsfw;
-        if (item.order !== undefined) out.order = item.order;
         return out;
     });
     const data = {
@@ -792,9 +791,16 @@ function exportJson() {
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'anison_list.json';
+    a.download = `anison_${yy}${mm}${dd}_${hh}${min}.json`;
     a.click();
     URL.revokeObjectURL(url);
 }
@@ -826,10 +832,10 @@ function importJson(event) {
                 });
             }
 
-            // Sort incoming arrays descending by order so that reorderAllLists assigns them correctly
+            // Reverse incoming arrays so that reorderAllLists assigns highest order to the last item
             ALL_LISTS.forEach(listName => {
                 if (state[listName] && state[listName].length > 0) {
-                    state[listName].sort((a, b) => (b.order || 0) - (a.order || 0));
+                    state[listName].reverse();
                 }
             });
 
