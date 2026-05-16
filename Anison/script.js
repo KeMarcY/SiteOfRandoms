@@ -617,7 +617,7 @@ function saveItem() {
                     targetListName = nowPlanned ? 'movieListPlanned' : 'movieListActive';
                 }
                 found.item.order = getNextOrder(targetListName);
-                state[targetListName].push(found.item);
+                state[targetListName].unshift(found.item);
             }
         }
     } else {
@@ -639,7 +639,7 @@ function saveItem() {
 
         buildItem.order = getNextOrder(targetListName);
         buildItem.tags.sort((a,b) => a.localeCompare(b));
-        state[targetListName].push(buildItem);
+        state[targetListName].unshift(buildItem);
     }
 
     renderLists();
